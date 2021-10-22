@@ -1,0 +1,9 @@
+
+server:
+  port: 8080
+
+luminous:
+  platform: ${ENV_PLATFORM}
+  defaultToken: ${ENV_DEFAULT_TOKEN}
+  docker:
+    host: tcp://localhost:2375
