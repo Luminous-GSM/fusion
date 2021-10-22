@@ -3,6 +3,7 @@ server:
   port: 8080
 
 luminous:
+  version: 0.0.1
   platform: ${ENV_PLATFORM}
   defaultToken: ${ENV_DEFAULT_TOKEN}
   docker:

@@ -35,9 +35,9 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 
 	// https://mvnrepository.com/artifact/org.pf4j/pf4j
-	implementation group: 'org.pf4j', name: 'pf4j', version: '3.6.0'
+	compileOnly group: 'org.pf4j', name: 'pf4j', version: '3.6.0'
 
-	implementation 'com.luminous-gsm:fusion-plugin-api:0.0.4'
+	compileOnly 'com.luminous-gsm:fusion-plugin-api:0.0.7'
 
 	// https://mvnrepository.com/artifact/com.github.docker-java/docker-java
 	implementation group: 'com.github.docker-java', name: 'docker-java', version: '3.2.12'

@@ -16,6 +16,8 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 public class LuminousPropertiesConfiguration {
 
+    private String version;
+
     // Default value makes default token optional via OS environment
     private String defaultToken = "NONE";
 
