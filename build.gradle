@@ -37,7 +37,7 @@ dependencies {
 	// https://mvnrepository.com/artifact/org.pf4j/pf4j
 	compileOnly group: 'org.pf4j', name: 'pf4j', version: '3.6.0'
 
-	compileOnly 'com.luminous-gsm:fusion-plugin-api:0.0.7'
+	compileOnly 'com.luminous-gsm:fusion-plugin-api:0.0.11'
 
 	// https://mvnrepository.com/artifact/com.github.docker-java/docker-java
 	implementation group: 'com.github.docker-java', name: 'docker-java', version: '3.2.12'

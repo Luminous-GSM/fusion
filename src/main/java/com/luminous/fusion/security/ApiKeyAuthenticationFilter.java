@@ -1,11 +1,8 @@
 package com.luminous.fusion.security;
 
-import com.luminous.fusion.configuration.LuminousPropertiesConfiguration;
-import com.luminous.fusion.models.exceptions.InvalidAccessTokenException;
-import lombok.AllArgsConstructor;
+import com.luminous.fusion.model.exception.InvalidAccessTokenException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;

@@ -1,11 +1,12 @@
 package com.luminous.fusion.controller;
 
 import com.luminous.fusion.service.AgentService;
+import com.luminous.fusion.service.PodService;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/agent")
@@ -13,11 +14,27 @@ import org.springframework.web.bind.annotation.RestController;
 public class AgentController {
 
     private final AgentService agentService;
+    private final PodService podService;
 
     @GetMapping("/version")
-    public String getAgentVersion() {
-        return this.agentService.getVersion();
+    public ResponseEntity<Map<String, String>> getAgentVersion() {
+        return ResponseEntity.ok(
+                Map.of(
+                        "agent", this.agentService.getVersion(),
+                        "docker", this.podService.getServerVersion()
+                )
+        );
     }
+
+    @GetMapping("/initialise")
+    public ResponseEntity<Object> initialiseServer() {
+
+        this.agentService.initializeServer();
+        this.podService.initialiseServer();
+
+        return ResponseEntity.ok("Ok");
+    }
+
 
 
 }
