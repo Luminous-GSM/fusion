@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/pods")
@@ -31,9 +32,11 @@ public class PodsController {
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<Container>> getAllPods(@RequestParam(defaultValue = "false") boolean showAll) {
+    public ResponseEntity<List<Container>> getAllPods(
+            @RequestParam(defaultValue = "false", required = false) boolean showAll,
+            @RequestParam(required = false) Integer exitedFilter) {
         return ResponseEntity.ok(
-                this.podService.listContainers(showAll)
+                this.podService.listContainers(showAll, exitedFilter)
         );
     }
 

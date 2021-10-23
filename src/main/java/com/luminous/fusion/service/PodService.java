@@ -2,6 +2,7 @@ package com.luminous.fusion.service;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.command.ListContainersCmd;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.model.*;
 import com.luminous.fusion.model.request.pod.PodCreateRequest;
@@ -111,8 +112,15 @@ public class PodService {
         this.dockerClient.startContainerCmd(podStartRequest.getContainerId()).exec();
     }
 
-    public List<Container> listContainers(boolean showALl) {
-         return this.dockerClient.listContainersCmd().withShowAll(showALl).exec();
+    public List<Container> listContainers(boolean showALl, Integer exitedFilter) {
+        ListContainersCmd listContainersCmd = this.dockerClient.listContainersCmd();
+
+        listContainersCmd.withShowAll(exitedFilter != null || showALl);
+        if (exitedFilter != null) {
+            listContainersCmd.withExitedFilter(exitedFilter);
+        }
+
+        return listContainersCmd.exec();
     }
 
     public void removePod(PodRemoveRequest podRemoveRequest) {
