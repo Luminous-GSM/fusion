@@ -16,6 +16,11 @@ public class AgentController {
     private final AgentService agentService;
     private final PodService podService;
 
+    @GetMapping("/ping")
+    public ResponseEntity<String> pingPong() {
+        return ResponseEntity.ok("Pong");
+    }
+
     @GetMapping("/version")
     public ResponseEntity<Map<String, String>> getAgentVersion() {
         return ResponseEntity.ok(

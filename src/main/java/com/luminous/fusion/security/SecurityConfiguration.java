@@ -7,6 +7,9 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+
+import java.util.List;
 
 @EnableWebSecurity
 @AllArgsConstructor
@@ -15,7 +18,15 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         // Enable CORS and disable CSRF
-        http = http.cors().and().csrf().disable();
+        http = http.cors().configurationSource(request -> {
+            var cors = new CorsConfiguration();
+            cors.setAllowedOrigins(List.of("http://localhost:3000"));
+            cors.setAllowedMethods(List.of("GET","POST", "PUT", "DELETE", "OPTIONS"));
+            cors.setAllowedHeaders(List.of("*"));
+            return cors;
+        }).and();
+
+        http = http.csrf().disable();
 
         // Set session management to stateless
         http = http
@@ -36,8 +47,11 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 //                )
 //                .and();
 
+
+
         http.authorizeRequests()
                 .antMatchers("/actuator/health").permitAll()
+                .antMatchers("/agent/ping").permitAll()
                 .antMatchers("/health/**").permitAll()
                 .anyRequest().authenticated();
 
