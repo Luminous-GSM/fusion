@@ -23,6 +23,8 @@ public class LuminousPropertiesConfiguration {
 
     private String platform;
 
+    private Database database;
+
     private Docker docker;
 
     @AllArgsConstructor
@@ -31,6 +33,14 @@ public class LuminousPropertiesConfiguration {
     @Setter
     public static class Docker {
         private String host;
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class Database {
+        private String filePath;
     }
 
 }

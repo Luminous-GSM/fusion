@@ -1,0 +1,13 @@
+{
+  "managementStatus": "uninitialized",
+  "users": [
+    {
+      "username": "LuminousAdmin",
+      "email": "none",
+      "password": "password",
+      "permissions": [
+        "admin"
+      ]
+    }
+  ]
+}

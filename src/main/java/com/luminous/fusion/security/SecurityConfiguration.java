@@ -51,7 +51,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
         http.authorizeRequests()
                 .antMatchers("/actuator/health").permitAll()
-                .antMatchers("/agent/ping").permitAll()
+                .antMatchers("/management/ping", "/management/sign-in").permitAll()
                 .antMatchers("/health/**").permitAll()
                 .anyRequest().authenticated();
 
