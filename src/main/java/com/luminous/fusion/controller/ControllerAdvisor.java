@@ -4,6 +4,7 @@ import com.github.dockerjava.api.exception.ConflictException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.exception.NotModifiedException;
 import com.luminous.fusion.model.exception.ApiError;
+import com.luminous.fusion.model.exception.InvalidAccessTokenException;
 import com.luminous.fusion.model.exception.UserNotFoundException;
 import org.pf4j.PluginRuntimeException;
 import org.springframework.http.HttpStatus;
@@ -48,7 +49,7 @@ public class ControllerAdvisor {
                 );
     }
 
-    @ExceptionHandler({UserNotFoundException.class})
+    @ExceptionHandler({UserNotFoundException.class, InvalidAccessTokenException.class})
     public ResponseEntity<ApiError> handleAuthenticationException(Exception e) {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)

@@ -1,5 +1,6 @@
 package com.luminous.fusion.security;
 
+import com.luminous.fusion.configuration.LuminousPropertiesConfiguration;
 import lombok.AllArgsConstructor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -15,12 +16,14 @@ import java.util.List;
 @AllArgsConstructor
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
+    private final LuminousPropertiesConfiguration luminousPropertiesConfiguration;
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         // Enable CORS and disable CSRF
         http = http.cors().configurationSource(request -> {
             var cors = new CorsConfiguration();
-            cors.setAllowedOrigins(List.of("http://localhost:3000"));
+            cors.setAllowedOrigins(List.of("*"));
             cors.setAllowedMethods(List.of("GET","POST", "PUT", "DELETE", "OPTIONS"));
             cors.setAllowedHeaders(List.of("*"));
             return cors;
@@ -51,10 +54,9 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
         http.authorizeRequests()
                 .antMatchers("/actuator/health").permitAll()
-                .antMatchers("/management/ping", "/management/sign-in").permitAll()
                 .antMatchers("/health/**").permitAll()
                 .anyRequest().authenticated();
 
-        http.addFilterBefore(new ApiKeyAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(new ApiKeyAuthenticationFilter(this.luminousPropertiesConfiguration), UsernamePasswordAuthenticationFilter.class);
     }
 }

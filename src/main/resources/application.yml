@@ -3,10 +3,12 @@ server:
   port: 8080
 
 luminous:
+  node:
+    name: ${ENV_NODE_NAME}
+    description: ${ENV_NODE_DESCRIPTION}
+    uniqueId: ${ENV_NODE_UNIQUE_ID}
+    authorizationToken: ${ENV_NODE_AUTHORIZATION_TOKEN}
   version: 0.0.1
   platform: ${ENV_PLATFORM}
-  defaultToken: ${ENV_DEFAULT_TOKEN}
-  database:
-    filePath: /database
   docker:
     host: tcp://localhost:2375

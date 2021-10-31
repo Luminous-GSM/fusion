@@ -16,14 +16,11 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 public class LuminousPropertiesConfiguration {
 
+    private Node node = new Node("FusionServer", "Fusion server for hosting games", "AuthToken", "UniqueId");
+
     private String version;
 
-    // Default value makes default token optional via OS environment
-    private String defaultToken = "NONE";
-
     private String platform;
-
-    private Database database;
 
     private Docker docker;
 
@@ -39,8 +36,11 @@ public class LuminousPropertiesConfiguration {
     @NoArgsConstructor
     @Getter
     @Setter
-    public static class Database {
-        private String filePath;
+    public static class Node {
+        private String name;
+        private String description;
+        private String authorizationToken = "NONE";
+        private String uniqueId = "NONE";
     }
 
 }

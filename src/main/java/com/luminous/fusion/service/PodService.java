@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -95,6 +96,7 @@ public class PodService {
                                 )
                                 .collect(Collectors.toList())
                 )
+                .withLabels(Map.of("manifest-json", ""))
                 .exec();
 
         log.info("Docker - Create Container Completed");
