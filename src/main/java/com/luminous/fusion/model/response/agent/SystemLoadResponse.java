@@ -1,4 +1,4 @@
-package com.luminous.fusion.model.response.management;
+package com.luminous.fusion.model.response.agent;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,6 +9,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class SignInResponse {
-    private String accessToken;
+public class SystemLoadResponse {
+    private double cpuLoad;
+    private double ramLoad;
+    private double hddUsage;
 }

@@ -1,5 +1,6 @@
 package com.luminous.fusion.configuration;
 
+import com.luminous.fusion.model.domain.server.HostingPlatform;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,7 +21,7 @@ public class LuminousPropertiesConfiguration {
 
     private String version;
 
-    private String platform;
+    private HostingPlatform platform;
 
     private Docker docker;
 

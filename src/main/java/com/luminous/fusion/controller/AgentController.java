@@ -3,14 +3,18 @@ package com.luminous.fusion.controller;
 import com.luminous.fusion.configuration.LuminousPropertiesConfiguration;
 import com.luminous.fusion.model.domain.server.NodeDescription;
 import com.luminous.fusion.model.domain.server.NodeStatus;
-import com.luminous.fusion.model.response.management.ManagementPingResult;
+import com.luminous.fusion.model.response.agent.DashboardResponse;
+import com.luminous.fusion.model.response.agent.SystemLoadResponse;
 import com.luminous.fusion.service.AgentService;
 import com.luminous.fusion.service.PodService;
+import com.sun.management.OperatingSystemMXBean;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -30,27 +34,44 @@ public class AgentController {
                         luminousPropertiesConfiguration.getNode().getUniqueId(),
                         luminousPropertiesConfiguration.getNode().getName(),
                         luminousPropertiesConfiguration.getNode().getDescription(),
-                        NodeStatus.RUNNING)
-        );
-    }
-
-    @GetMapping("/version")
-    public ResponseEntity<Map<String, String>> getAgentVersion() {
-        return ResponseEntity.ok(
-                Map.of(
-                        "agent", this.agentService.getVersion(),
-                        "docker", this.podService.getServerVersion()
+                        luminousPropertiesConfiguration.getVersion(),
+                        luminousPropertiesConfiguration.getPlatform(),
+                        NodeStatus.RUNNING,
+                        this.podService.getTotalActivePods()
                 )
         );
     }
 
-    @GetMapping("/initialise")
-    public ResponseEntity<Object> initialiseServer() {
+    @GetMapping("/system-load")
+    public ResponseEntity<SystemLoadResponse> getSystemLoad() {
+        OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
 
-        this.agentService.initializeServer();
-        this.podService.initialiseServer();
+        return ResponseEntity.ok(
+                new SystemLoadResponse(
+                        osBean.getSystemCpuLoad() * 100,
+                        ( (double) osBean.getFreePhysicalMemorySize() / (double) osBean.getTotalPhysicalMemorySize() ) * 100,
+                        0
+                )
+        );
+    }
 
-        return ResponseEntity.ok("Ok");
+    @GetMapping("/dashboard")
+    public ResponseEntity<DashboardResponse> getAgentDashboard() {
+        return ResponseEntity.ok(
+                new DashboardResponse(
+                        new NodeDescription(
+                                luminousPropertiesConfiguration.getNode().getUniqueId(),
+                                luminousPropertiesConfiguration.getNode().getName(),
+                                luminousPropertiesConfiguration.getNode().getDescription(),
+                                luminousPropertiesConfiguration.getVersion(),
+                                luminousPropertiesConfiguration.getPlatform(),
+                                NodeStatus.RUNNING,
+                                this.podService.getTotalActivePods()
+                        ),
+                        this.podService.listContainers(List.of()),
+                        this.podService.getImages()
+                )
+        );
     }
 
 

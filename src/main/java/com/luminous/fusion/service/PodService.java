@@ -3,8 +3,10 @@ package com.luminous.fusion.service;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.ListContainersCmd;
+import com.github.dockerjava.api.command.LogContainerCmd;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.model.*;
+import com.luminous.fusion.callbacks.FusionLogContainerCallback;
 import com.luminous.fusion.model.request.pod.PodCreateRequest;
 import com.luminous.fusion.model.request.pod.PodRemoveRequest;
 import com.luminous.fusion.model.request.pod.PodStartRequest;
@@ -15,12 +17,15 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 @Slf4j
 public class PodService {
+
+    private final String LABEL_IS_FUSION_POD = "is-fusion-pod";
 
     private final DockerClient dockerClient;
 
@@ -32,7 +37,7 @@ public class PodService {
 
     }
 
-    public void createPod(PodCreateRequest podCreateRequest) throws InterruptedException {
+    public String createPod(PodCreateRequest podCreateRequest) throws InterruptedException {
 
         this.dockerClient
                 .pullImageCmd(podCreateRequest.getPodDescription().getImage())
@@ -92,18 +97,22 @@ public class PodService {
                                 .getEnvironmentMaps()
                                 .stream()
                                 .map(environmentMap ->
-                                        String.format("%s=%s",environmentMap.getName(), environmentMap.getValue())
+                                        String.format("%s=%s", environmentMap.getName(), environmentMap.getValue())
                                 )
                                 .collect(Collectors.toList())
                 )
-                .withLabels(Map.of("manifest-json", ""))
+                .withLabels(
+                        Map.of(
+                                "manifest-file-used", podCreateRequest.getPodDescription().getManifestFileUsed(),
+                                LABEL_IS_FUSION_POD, "true"
+                        )
+                )
                 .exec();
 
         log.info("Docker - Create Container Completed");
 
-        this.dockerClient.startContainerCmd(createContainerResponse.getId()).exec();
+        return createContainerResponse.getId();
 
-        log.info("Docker - Start Container Completed");
     }
 
     public void stopPod(PodStopRequest podStopRequest) {
@@ -125,11 +134,57 @@ public class PodService {
         return listContainersCmd.exec();
     }
 
+    public List<Container> listContainers(List<String> status) {
+
+        ListContainersCmd listContainersCmd = this.dockerClient
+                .listContainersCmd()
+                .withShowAll(true)
+                .withLabelFilter(
+                        Map.of(LABEL_IS_FUSION_POD, "true")
+                );
+
+        if (!status.isEmpty()) {
+            listContainersCmd.withStatusFilter(status);
+        }
+
+        return listContainersCmd.exec();
+    }
+
+    public List<Image> getImages() {
+        return this.dockerClient
+                .listImagesCmd()
+                .withDanglingFilter(true)
+                .withShowAll(true)
+                .exec();
+    }
+
     public void removePod(PodRemoveRequest podRemoveRequest) {
         this.dockerClient
                 .removeContainerCmd(podRemoveRequest.getContainerId())
                 .withForce(podRemoveRequest.isForceRemove())
                 .exec();
+    }
+
+    public String getContainerLogs(String containerId) throws InterruptedException {
+
+        FusionLogContainerCallback fusionLogContainerCallback = new FusionLogContainerCallback(true);
+
+        this.dockerClient
+                .logContainerCmd(containerId)
+                .withStdOut(true)
+                .withStdErr(true)
+                .withFollowStream(true)
+                .withTailAll()
+                .withTimestamps(true)
+                .exec(fusionLogContainerCallback);
+
+        fusionLogContainerCallback.awaitCompletion(3, TimeUnit.SECONDS);
+
+        return fusionLogContainerCallback.toString();
+    }
+
+    public int getTotalActivePods() {
+        return this.dockerClient.listContainersCmd().exec().size();
     }
 
 }

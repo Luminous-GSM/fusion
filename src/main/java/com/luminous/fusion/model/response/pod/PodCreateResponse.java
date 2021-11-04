@@ -1,4 +1,4 @@
-package com.luminous.fusion.model.request.management;
+package com.luminous.fusion.model.response.pod;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class SignInRequest {
-    private String username;
-    private String password;
+public class PodCreateResponse {
+    private String containerId;
 }

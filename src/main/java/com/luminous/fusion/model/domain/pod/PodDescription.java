@@ -19,4 +19,6 @@ public class PodDescription {
     private Set<PortMap> portMaps;
     private Set<EnvironmentMap> environmentMaps;
     private Set<MountMap> mountMaps;
+    private String command;
+    private String manifestFileUsed;
 }

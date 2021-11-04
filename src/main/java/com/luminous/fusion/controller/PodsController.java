@@ -5,6 +5,7 @@ import com.luminous.fusion.model.request.pod.PodCreateRequest;
 import com.luminous.fusion.model.request.pod.PodRemoveRequest;
 import com.luminous.fusion.model.request.pod.PodStartRequest;
 import com.luminous.fusion.model.request.pod.PodStopRequest;
+import com.luminous.fusion.model.response.pod.PodCreateResponse;
 import com.luminous.fusion.service.PodService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +22,12 @@ public class PodsController {
     private final PodService podService;
 
     @PostMapping("/")
-    public ResponseEntity<Object> createPod(@RequestBody PodCreateRequest podCreateRequest) {
-        try {
-            this.podService.createPod(podCreateRequest);
+    public ResponseEntity<PodCreateResponse> createPod(@RequestBody PodCreateRequest podCreateRequest) throws InterruptedException {
+        String containerId = this.podService.createPod(podCreateRequest);
 
-            return ResponseEntity.ok("Ok");
-        } catch (InterruptedException e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
-        }
+        return ResponseEntity.ok(
+                new PodCreateResponse(containerId)
+        );
     }
 
     @GetMapping("/")
@@ -56,6 +55,13 @@ public class PodsController {
     public ResponseEntity<String> startPod(@RequestBody PodStartRequest podStartRequest) {
         this.podService.startPod(podStartRequest);
         return ResponseEntity.ok(String.format("%s started successfully", podStartRequest.getContainerId()));
+    }
+
+    @GetMapping("/logs/{containerId}")
+    public ResponseEntity<String> getPodLogs(@PathVariable String containerId) throws InterruptedException {
+        return ResponseEntity.ok(
+                this.podService.getContainerLogs(containerId)
+        );
     }
 
 }

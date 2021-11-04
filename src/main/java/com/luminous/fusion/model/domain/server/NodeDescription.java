@@ -13,5 +13,8 @@ public class NodeDescription {
     String nodeUniqueId;
     String name;
     String description;
+    String version;
+    HostingPlatform hostingPlatform;
     NodeStatus nodeStatus;
+    int activePods;
 }

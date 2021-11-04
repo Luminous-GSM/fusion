@@ -1,6 +1,7 @@
 package com.luminous.fusion.controller;
 
 import com.github.dockerjava.api.exception.ConflictException;
+import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.exception.NotModifiedException;
 import com.luminous.fusion.model.exception.ApiError;
@@ -79,17 +80,22 @@ public class ControllerAdvisor {
                 );
     }
 
-    @ExceptionHandler({NotFoundException.class, NotModifiedException.class, ConflictException.class})
-    public ResponseEntity<ApiError> HandlePodException(Exception e) {
+    @ExceptionHandler({DockerException.class})
+    public ResponseEntity<ApiError> HandlePodException(DockerException e) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(
                         ApiError.builder()
                                 .timestamp(LocalDateTime.now())
-                                .exception(e.getClass().getName())
-                                .status(HttpStatus.BAD_REQUEST)
-                                .message("Docker Pod error")
-                                .debugMessage(e.getLocalizedMessage())
+                                .exception(DockerException.class.getName())
+                                .status(HttpStatus.resolve(e.getHttpStatus()))
+                                .message("Fusion pod error")
+                                .debugMessage(
+                                        e.getMessage().replace(
+                                                String.format("Status %d: ", e.getHttpStatus()),
+                                                ""
+                                        )
+                                )
                                 .build()
                 );
     }
