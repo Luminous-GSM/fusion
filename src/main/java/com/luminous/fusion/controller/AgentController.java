@@ -3,7 +3,9 @@ package com.luminous.fusion.controller;
 import com.luminous.fusion.configuration.LuminousPropertiesConfiguration;
 import com.luminous.fusion.model.domain.server.NodeDescription;
 import com.luminous.fusion.model.domain.server.NodeStatus;
+import com.luminous.fusion.model.response.agent.ContainerDto;
 import com.luminous.fusion.model.response.agent.DashboardResponse;
+import com.luminous.fusion.model.response.agent.ImageDto;
 import com.luminous.fusion.model.response.agent.SystemLoadResponse;
 import com.luminous.fusion.service.AgentService;
 import com.luminous.fusion.service.PodService;
@@ -16,6 +18,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/agent")
@@ -48,9 +51,9 @@ public class AgentController {
 
         return ResponseEntity.ok(
                 new SystemLoadResponse(
-                        osBean.getSystemCpuLoad() * 100,
-                        ( (double) osBean.getFreePhysicalMemorySize() / (double) osBean.getTotalPhysicalMemorySize() ) * 100,
-                        0
+                        Math.round(osBean.getSystemCpuLoad() * 100),
+                        Math.round( ( (double) (osBean.getTotalPhysicalMemorySize() - osBean.getFreePhysicalMemorySize() ) / (double) osBean.getTotalPhysicalMemorySize() ) * 100),
+                        Math.round(0)
                 )
         );
     }
@@ -68,8 +71,8 @@ public class AgentController {
                                 NodeStatus.RUNNING,
                                 this.podService.getTotalActivePods()
                         ),
-                        this.podService.listContainers(List.of()),
-                        this.podService.getImages()
+                        this.podService.listContainers(List.of()).stream().map(ContainerDto::new).collect(Collectors.toList()),
+                        this.podService.getImages().stream().map(ImageDto::new).collect(Collectors.toList())
                 )
         );
     }

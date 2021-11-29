@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 public class PodService {
 
     private final String LABEL_IS_FUSION_POD = "is-fusion-pod";
+    private final int WAIT_TIMEOUT = 5;
 
     private final DockerClient dockerClient;
 
@@ -115,12 +116,16 @@ public class PodService {
 
     }
 
+    public Container getSimpleContainerViaId(String containerId) {
+        return this.dockerClient.listContainersCmd().withShowAll(true).withIdFilter(List.of(containerId)).exec().get(0);
+    }
+
     public void stopPod(PodStopRequest podStopRequest) {
-        this.dockerClient.stopContainerCmd(podStopRequest.getContainerId()).exec();
+        this.dockerClient.stopContainerCmd(podStopRequest.getContainerId()).withTimeout(WAIT_TIMEOUT).exec();
     }
 
     public void startPod(PodStartRequest podStartRequest) {
-        this.dockerClient.startContainerCmd(podStartRequest.getContainerId()).exec();
+        this.dockerClient.restartContainerCmd(podStartRequest.getContainerId()).withtTimeout(WAIT_TIMEOUT).exec();
     }
 
     public List<Container> listContainers(boolean showALl, Integer exitedFilter) {
@@ -153,7 +158,6 @@ public class PodService {
     public List<Image> getImages() {
         return this.dockerClient
                 .listImagesCmd()
-                .withDanglingFilter(true)
                 .withShowAll(true)
                 .exec();
     }

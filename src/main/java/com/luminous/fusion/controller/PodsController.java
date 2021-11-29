@@ -5,6 +5,7 @@ import com.luminous.fusion.model.request.pod.PodCreateRequest;
 import com.luminous.fusion.model.request.pod.PodRemoveRequest;
 import com.luminous.fusion.model.request.pod.PodStartRequest;
 import com.luminous.fusion.model.request.pod.PodStopRequest;
+import com.luminous.fusion.model.response.agent.ContainerDto;
 import com.luminous.fusion.model.response.pod.PodCreateResponse;
 import com.luminous.fusion.service.PodService;
 import lombok.AllArgsConstructor;
@@ -46,15 +47,25 @@ public class PodsController {
     }
 
     @PostMapping("/stop")
-    public ResponseEntity<String> stopPod(@RequestBody PodStopRequest podStopRequest) {
+    public ResponseEntity<ContainerDto> stopPod(@RequestBody PodStopRequest podStopRequest) throws InterruptedException {
         this.podService.stopPod(podStopRequest);
-        return ResponseEntity.ok(String.format("%s stopped successfully", podStopRequest.getContainerId()));
+        Thread.sleep(1000);
+        return ResponseEntity.ok(
+                new ContainerDto(
+                        this.podService.getSimpleContainerViaId(podStopRequest.getContainerId())
+                )
+        );
     }
 
     @PostMapping("/start")
-    public ResponseEntity<String> startPod(@RequestBody PodStartRequest podStartRequest) {
+    public ResponseEntity<ContainerDto> startPod(@RequestBody PodStartRequest podStartRequest) throws InterruptedException {
         this.podService.startPod(podStartRequest);
-        return ResponseEntity.ok(String.format("%s started successfully", podStartRequest.getContainerId()));
+        Thread.sleep(1000);
+        return ResponseEntity.ok(
+                new ContainerDto(
+                        this.podService.getSimpleContainerViaId(podStartRequest.getContainerId())
+                )
+        );
     }
 
     @GetMapping("/logs/{containerId}")

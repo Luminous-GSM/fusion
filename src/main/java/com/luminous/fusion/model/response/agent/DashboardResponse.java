@@ -16,7 +16,7 @@ import java.util.List;
 @Setter
 public class DashboardResponse {
     private NodeDescription nodeDescription;
-    private List<Container> pods;
-    private List<Image> images;
+    private List<ContainerDto> pods;
+    private List<ImageDto> images;
 
 }
