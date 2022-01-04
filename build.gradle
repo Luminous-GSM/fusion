@@ -60,7 +60,7 @@ bootJar {
 docker {
 	dockerfile file("Dockerfile")
 	name "ghcr.io/luminous-gsm/fusion:${project.version}"
-//	tag 'latest', 'ghcr.io/luminous-gsm/fusion:latest'
+	tag 'latest', 'ghcr.io/luminous-gsm/fusion:latest'
 	files bootJar.archiveFile
 }
 
