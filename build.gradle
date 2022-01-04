@@ -20,6 +20,10 @@ repositories {
 
 	maven {
 		url = uri("https://maven.pkg.github.com/luminous-gsm/fusion-plugin-api")
+		credentials {
+			username = System.getenv("LUMINOUS_PACKAGE_USERNAME")
+			password = System.getenv("LUMINOUS_PACKAGE_PAT")
+		}
 	}
 }
 
@@ -37,7 +41,7 @@ dependencies {
 
 	// https://mvnrepository.com/artifact/org.pf4j/pf4j
 	implementation 'org.pf4j:pf4j:3.6.0'
-	implementation 'com.luminous-gsm:fusion-plugin-api:0.0.11'
+	implementation 'com.luminous-gsm:fusion-plugin-api:0.0.12'
 
 	// https://mvnrepository.com/artifact/com.github.docker-java/docker-java
 	implementation group: 'com.github.docker-java', name: 'docker-java', version: '3.2.12'
@@ -57,8 +61,8 @@ bootBuildImage {
 	imageName = "ghcr.io/luminous-gsm/${project.name}:${project.version}"
 	docker {
 		publishRegistry {
-			username = System.getenv("github.actor")
-			password = System.getenv("secrets.GITHUB_TOKEN")
+			username = System.getenv("GITHUB_ACTOR")
+			password = System.getenv("GITHUB_TOKEN")
 			url = "https://ghcr.io"
 			email = "marnovn071@gmail.com"
 		}
