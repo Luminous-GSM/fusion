@@ -21,13 +21,9 @@ repositories {
 
 	maven {
 		url = uri("https://maven.pkg.github.com/luminous-gsm/fusion-plugin-api")
-//		credentials {
-//			username = System.getenv("LUMINOUS_PACKAGE_USERNAME")
-//			password = System.getenv("LUMINOUS_PACKAGE_PAT")
-//		}
 		credentials {
-			username = "QuattroViper"
-			password = "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"
+			username = System.getenv("LUMINOUS_PACKAGE_USERNAME")
+			password = System.getenv("LUMINOUS_PACKAGE_PAT")
 		}
 	}
 }
