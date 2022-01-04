@@ -9,6 +9,8 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  LUMINOUS_PACKAGE_USERNAME: ${{ secrets.LUMINOUS_PACKAGE_USERNAME }}
+  LUMINOUS_PACKAGE_PAT: ${{ secrets.LUMINOUS_PACKAGE_PAT }}
 
 jobs:
   build-and-push-image:
