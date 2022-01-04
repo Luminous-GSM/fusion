@@ -37,4 +37,6 @@ jobs:
       - name: Change wrapper permissions
         run: chmod +x ./gradlew
       - name: Build with Gradle
-        run: ./gradlew bootBuildImage
+        run: ./gradlew build
+      - name: Docker
+        run: ./gradlew docker dockerTag dockerPush

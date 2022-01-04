@@ -1,10 +1,12 @@
-# The base_image should hold a reference to the image created by ./gradlew bootBuildImage
-ARG base_image
-FROM ${base_image}
+FROM amazoncorretto:11-alpine-jdk
 
-RUN apt-get -yqq update && apt-get -yqq install docker.io
+RUN mkdir /fusion
+COPY fusion.jar /fusion/app.jar
+
+EXPOSE 7878
+
+#RUN apt-get -yqq update && apt-get -yqq install docker.io
 VOLUME /var/run/docker.sock
+VOLUME /fusion/plugins
 
-RUN echo "Hello Custom Dockerfile"
-
-ENTRYPOINT /cnb/process/web
+ENTRYPOINT ["java","-jar","/fusion/app.jar"]

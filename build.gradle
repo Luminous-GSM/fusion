@@ -1,6 +1,7 @@
 plugins {
 	id 'org.springframework.boot' version '2.6.2'
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id 'com.palantir.docker' version '0.30.0'
 	id 'java'
 }
 
@@ -20,9 +21,13 @@ repositories {
 
 	maven {
 		url = uri("https://maven.pkg.github.com/luminous-gsm/fusion-plugin-api")
+//		credentials {
+//			username = System.getenv("LUMINOUS_PACKAGE_USERNAME")
+//			password = System.getenv("LUMINOUS_PACKAGE_PAT")
+//		}
 		credentials {
-			username = System.getenv("LUMINOUS_PACKAGE_USERNAME")
-			password = System.getenv("LUMINOUS_PACKAGE_PAT")
+			username = "QuattroViper"
+			password = "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"
 		}
 	}
 }
@@ -52,20 +57,17 @@ dependencies {
 
 }
 
-test {
-	useJUnitPlatform()
+bootJar {
+	archiveFileName = "${archiveBaseName.get()}.${archiveExtension.get()}"
 }
 
-bootBuildImage {
-	publish = true
-	imageName = "ghcr.io/luminous-gsm/${project.name}:${project.version}"
-	docker {
-		publishRegistry {
-			username = System.getenv("LUMINOUS_PACKAGE_USERNAME")
-			password = System.getenv("LUMINOUS_PACKAGE_PAT")
-			url = "https://ghcr.io"
-			email = "marnovn071@gmail.com"
-		}
-	}
-	tags = ["ghcr.io/luminous-gsm/${project.name}:latest"]
+docker {
+	dockerfile file("Dockerfile")
+	name "ghcr.io/luminous-gsm/fusion:${project.version}"
+	tag 'latest', 'ghcr.io/luminous-gsm/fusion:latest'
+	files bootJar.archiveFile
+}
+
+test {
+	useJUnitPlatform()
 }
