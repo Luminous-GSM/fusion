@@ -67,4 +67,5 @@ bootBuildImage {
 			email = "marnovn071@gmail.com"
 		}
 	}
+	tags = ['latest']
 }
