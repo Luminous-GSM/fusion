@@ -11,4 +11,4 @@ luminous:
   version: 0.0.1
   platform: ${ENV_PLATFORM}
   docker:
-    host: tcp://localhost:2375
+    host: tcp://host.docker.internal:2375

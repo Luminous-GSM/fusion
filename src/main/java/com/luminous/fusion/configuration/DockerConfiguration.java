@@ -6,6 +6,7 @@ import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
+import com.luminous.fusion.model.domain.server.HostingPlatform;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,11 @@ public class DockerConfiguration {
     @Bean
     public DockerClientConfig dockerClientConfig() {
         return DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost(luminousPropertiesConfiguration.getDocker().getHost())
+                .withDockerHost(
+                        luminousPropertiesConfiguration.getPlatform() == HostingPlatform.LOCAL
+                                ? "tcp://127.0.0.1:2375"
+                                : luminousPropertiesConfiguration.getDocker().getHost()
+                )
                 .build();
     }
 

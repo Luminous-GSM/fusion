@@ -5,7 +5,7 @@ COPY fusion.jar /fusion/app.jar
 
 EXPOSE 7878
 
-#RUN apt-get -yqq update && apt-get -yqq install docker.io
+RUN apk update && apk add --no-cache docker-cli
 VOLUME /var/run/docker.sock
 VOLUME /fusion/plugins
 

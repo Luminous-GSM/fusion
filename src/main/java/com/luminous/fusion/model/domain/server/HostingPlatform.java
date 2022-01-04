@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum HostingPlatform {
     @JsonProperty("local") LOCAL,
-    @JsonProperty("AWS") AWS;
+    @JsonProperty("docker") DOCKER;
 
 
 }
