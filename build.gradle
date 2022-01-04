@@ -67,5 +67,5 @@ bootBuildImage {
 			email = "marnovn071@gmail.com"
 		}
 	}
-	tags = ['latest']
+	tags = ["ghcr.io/luminous-gsm/${project.name}:latest"]
 }
