@@ -61,8 +61,8 @@ bootBuildImage {
 	imageName = "ghcr.io/luminous-gsm/${project.name}:${project.version}"
 	docker {
 		publishRegistry {
-			username = System.getenv("GITHUB_ACTOR")
-			password = System.getenv("GITHUB_TOKEN")
+			username = System.getenv("LUMINOUS_PACKAGE_USERNAME")
+			password = System.getenv("LUMINOUS_PACKAGE_PAT")
 			url = "https://ghcr.io"
 			email = "marnovn071@gmail.com"
 		}
