@@ -1,6 +1,9 @@
 
 server:
   port: 7878
+  tomcat:
+    threads:
+      max: 4
 
 luminous:
   node:

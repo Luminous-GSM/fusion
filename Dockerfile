@@ -9,4 +9,4 @@ RUN apk update && apk add --no-cache docker-cli
 VOLUME /var/run/docker.sock
 VOLUME /fusion/plugins
 
-ENTRYPOINT ["java","-jar","/fusion/app.jar"]
+ENTRYPOINT ["java -XX:+UseSerialGC -Xss512k -XX:MaxRAM=100m","-jar","/fusion/app.jar"]
