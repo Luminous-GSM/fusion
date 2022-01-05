@@ -8,23 +8,32 @@ import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
 import com.luminous.fusion.model.domain.server.HostingPlatform;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 
 @Configuration
 @AllArgsConstructor
+@Slf4j
 public class DockerConfiguration {
 
     private final LuminousPropertiesConfiguration luminousPropertiesConfiguration;
 
     private String getHostnameBasedOnHostingPlatform() {
+        log.info(String.valueOf(luminousPropertiesConfiguration));
+
+        String host = "";
         switch (luminousPropertiesConfiguration.getPlatform()) {
-            case LOCAL: return "tcp://127.0.0.1:2375";
-            case DOCKER: return "tcp://host.docker.internal:2375";
-            case AWS: return luminousPropertiesConfiguration.getNode().getHostname();
+            case LOCAL: host = "tcp://127.0.0.1:2375";
+            break;
+            case DOCKER: host = "tcp://host.docker.internal:2375";
+            break;
+            case AWS: host = String.format("tcp://%s:2375", luminousPropertiesConfiguration.getNode().getHostname());
+            break;
         }
-        return "";
+        log.info(host);
+        return host;
     }
 
     @Bean
