@@ -11,7 +11,6 @@ luminous:
     description: ${ENV_NODE_DESCRIPTION}
     uniqueId: ${ENV_NODE_UNIQUE_ID}
     authorizationToken: ${ENV_NODE_AUTHORIZATION_TOKEN}
+    hostname: ${ENV_NODE_HOSTNAME}
   version: 0.0.1
   platform: ${ENV_PLATFORM}
-  docker:
-    host: tcp://host.docker.internal:2375

@@ -39,4 +39,4 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
       - name: Docker
-        run: ./gradlew docker dockerTag dockerPush
+        run: ./gradlew docker dockerTag dockerPush dockerTagLatest dockerPushLatest

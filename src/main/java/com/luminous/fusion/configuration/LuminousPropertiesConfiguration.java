@@ -17,21 +17,11 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 public class LuminousPropertiesConfiguration {
 
-    private Node node = new Node("FusionServer", "Fusion server for hosting games", "AuthToken", "UniqueId");
+    private Node node = new Node("FusionServer", "Fusion server for hosting games", "AuthToken", "UniqueId", "fusion-node-XXXXX");
 
     private String version;
 
     private HostingPlatform platform;
-
-    private Docker docker;
-
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Getter
-    @Setter
-    public static class Docker {
-        private String host;
-    }
 
     @AllArgsConstructor
     @NoArgsConstructor
@@ -42,6 +32,7 @@ public class LuminousPropertiesConfiguration {
         private String description;
         private String authorizationToken = "NONE";
         private String uniqueId = "NONE";
+        private String hostname = "fusion-node-XXXXX";
     }
 
 }

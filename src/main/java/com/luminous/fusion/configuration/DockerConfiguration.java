@@ -18,14 +18,19 @@ public class DockerConfiguration {
 
     private final LuminousPropertiesConfiguration luminousPropertiesConfiguration;
 
+    private String getHostnameBasedOnHostingPlatform() {
+        switch (luminousPropertiesConfiguration.getPlatform()) {
+            case LOCAL: return "tcp://127.0.0.1:2375";
+            case DOCKER: return "tcp://host.docker.internal:2375";
+            case AWS: return luminousPropertiesConfiguration.getNode().getHostname();
+        }
+        return "";
+    }
+
     @Bean
     public DockerClientConfig dockerClientConfig() {
         return DefaultDockerClientConfig.createDefaultConfigBuilder()
-                .withDockerHost(
-                        luminousPropertiesConfiguration.getPlatform() == HostingPlatform.LOCAL
-                                ? "tcp://127.0.0.1:2375"
-                                : luminousPropertiesConfiguration.getDocker().getHost()
-                )
+                .withDockerHost(getHostnameBasedOnHostingPlatform())
                 .build();
     }
 
