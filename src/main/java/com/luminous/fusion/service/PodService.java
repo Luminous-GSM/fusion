@@ -25,8 +25,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PodService {
 
-    private final String LABEL_IS_FUSION_POD = "is-fusion-pod";
-    private final int WAIT_TIMEOUT = 5;
+    private static final String LABEL_IS_FUSION_POD = "is-fusion-pod";
+    private static final int WAIT_TIMEOUT = 5;
 
     private final DockerClient dockerClient;
 
@@ -65,19 +65,19 @@ public class PodService {
                                 )
                                 .collect(Collectors.toList())
                 )
-                .withMounts(
-                        podCreateRequest
-                                .getPodDescription()
-                                .getMountMaps()
-                                .stream()
-                                .map(volumeMap ->
-                                        new Mount()
-                                                .withSource(volumeMap.getSource())
-                                                .withTarget(volumeMap.getDestination())
-                                                .withType(MountType.BIND)
-                                )
-                                .collect(Collectors.toList())
-                )
+//                .withMounts(
+//                        podCreateRequest
+//                                .getPodDescription()
+//                                .getMountMaps()
+//                                .stream()
+//                                .map(volumeMap ->
+//                                        new Mount()
+//                                                .withSource(volumeMap.getSource())
+//                                                .withTarget(volumeMap.getDestination())
+//                                                .withType(MountType.VOLUME)
+//                                )
+//                                .collect(Collectors.toList())
+//                )
                 .withRestartPolicy(RestartPolicy.unlessStoppedRestart());
 
         log.info("Docker - Create Container {} | Starting", podCreateRequest.getPodDescription().getName());
@@ -86,6 +86,16 @@ public class PodService {
                 .createContainerCmd(podCreateRequest.getPodDescription().getImage())
                 .withName(podCreateRequest.getPodDescription().getName())
                 .withHostConfig(hostConfig)
+                .withVolumes(
+                        podCreateRequest
+                                .getPodDescription()
+                                .getMountMaps()
+                                .stream()
+                                .map(volumeMap ->
+                                        new Volume(String.format("%s=%s", volumeMap.getSource(), volumeMap.getDestination()))
+                                )
+                                .collect(Collectors.toList())
+                )
                 .withExposedPorts(
                         podCreateRequest
                                 .getPodDescription()
