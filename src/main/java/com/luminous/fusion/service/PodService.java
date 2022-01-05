@@ -39,6 +39,9 @@ public class PodService {
     }
 
     public String createPod(PodCreateRequest podCreateRequest) throws InterruptedException {
+        log.info("Service-PodService | createPod | Start");
+
+        log.info("Docker - Pull {} | Starting", podCreateRequest.getPodDescription().getImage());
 
         this.dockerClient
                 .pullImageCmd(podCreateRequest.getPodDescription().getImage())
@@ -46,7 +49,7 @@ public class PodService {
                 .exec(new PullImageResultCallback())
                 .awaitCompletion();
 
-        log.info("Docker - Pull Image Completed");
+        log.info("Docker - Pull {} | Completed", podCreateRequest.getPodDescription().getImage());
 
         HostConfig hostConfig = new HostConfig()
                 .withPortBindings(
@@ -77,6 +80,7 @@ public class PodService {
                 )
                 .withRestartPolicy(RestartPolicy.unlessStoppedRestart());
 
+        log.info("Docker - Create Container {} | Starting", podCreateRequest.getPodDescription().getName());
 
         CreateContainerResponse createContainerResponse = this.dockerClient
                 .createContainerCmd(podCreateRequest.getPodDescription().getImage())
@@ -110,8 +114,9 @@ public class PodService {
                 )
                 .exec();
 
-        log.info("Docker - Create Container Completed");
+        log.info("Docker - Create Container {} | Completed", podCreateRequest.getPodDescription().getName());
 
+        log.info("Service-PodService | createPod | End");
         return createContainerResponse.getId();
 
     }

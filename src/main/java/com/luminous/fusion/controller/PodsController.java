@@ -9,6 +9,7 @@ import com.luminous.fusion.model.response.agent.ContainerDto;
 import com.luminous.fusion.model.response.pod.PodCreateResponse;
 import com.luminous.fusion.service.PodService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,12 +19,15 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/pods")
 @AllArgsConstructor
+@Slf4j
 public class PodsController {
 
     private final PodService podService;
 
     @PostMapping("/")
     public ResponseEntity<PodCreateResponse> createPod(@RequestBody PodCreateRequest podCreateRequest) throws InterruptedException {
+        log.info("Controller | createPod | PodCreateRequest : {}", podCreateRequest);
+
         String containerId = this.podService.createPod(podCreateRequest);
 
         return ResponseEntity.ok(

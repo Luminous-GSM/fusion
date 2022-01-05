@@ -2,6 +2,8 @@
 server:
   port: 7878
   tomcat:
+    accesslog:
+      enabled: true
     threads:
       max: 4
 

@@ -1,9 +1,6 @@
 package com.luminous.fusion.model.domain.pod;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Set;
 
@@ -11,6 +8,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Getter
 @Setter
+@ToString
 public class PodDescription {
     private String id;
     private String name;
