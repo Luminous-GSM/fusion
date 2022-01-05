@@ -104,7 +104,7 @@ public class ControllerAdvisor {
                 .exception(e.getClass().getName())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .message("Something went wrong")
-                .debugMessage(e.getLocalizedMessage())
+                .debugMessage(e.getMessage())
                 .build();
 
         log.error("Something went wrong", e);
