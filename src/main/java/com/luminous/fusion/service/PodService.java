@@ -7,10 +7,7 @@ import com.github.dockerjava.api.command.LogContainerCmd;
 import com.github.dockerjava.api.command.PullImageResultCallback;
 import com.github.dockerjava.api.model.*;
 import com.luminous.fusion.callbacks.FusionLogContainerCallback;
-import com.luminous.fusion.model.request.pod.PodCreateRequest;
-import com.luminous.fusion.model.request.pod.PodRemoveRequest;
-import com.luminous.fusion.model.request.pod.PodStartRequest;
-import com.luminous.fusion.model.request.pod.PodStopRequest;
+import com.luminous.fusion.model.request.pod.*;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,18 +35,27 @@ public class PodService {
 
     }
 
-    public String createPod(PodCreateRequest podCreateRequest) throws InterruptedException {
-        log.info("Service-PodService | createPod | Start");
-
-        log.info("Docker - Pull {} | Starting", podCreateRequest.getPodDescription().getImage());
+    public void pullImage(PullImageRequest pullImageRequest) throws InterruptedException {
+        log.info("Docker - Pull {} | Starting", pullImageRequest.getImageName());
 
         this.dockerClient
-                .pullImageCmd(podCreateRequest.getPodDescription().getImage())
-                .withTag(podCreateRequest.getPodDescription().getTag())
+                .pullImageCmd(pullImageRequest.getImageName())
+                .withTag(pullImageRequest.getImageTag())
                 .exec(new PullImageResultCallback())
                 .awaitCompletion();
 
-        log.info("Docker - Pull {} | Completed", podCreateRequest.getPodDescription().getImage());
+        log.info("Docker - Pull {} | Completed", pullImageRequest.getImageName());
+    }
+
+    public String createPod(PodCreateRequest podCreateRequest) throws InterruptedException {
+        log.info("Service-PodService | createPod | Start");
+
+        this.pullImage(
+                new PullImageRequest(
+                        podCreateRequest.getPodDescription().getImage(),
+                        podCreateRequest.getPodDescription().getTag()
+                )
+        );
 
         HostConfig hostConfig = new HostConfig()
                 .withPortBindings(

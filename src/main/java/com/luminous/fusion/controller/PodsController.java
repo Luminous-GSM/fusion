@@ -1,10 +1,7 @@
 package com.luminous.fusion.controller;
 
 import com.github.dockerjava.api.model.Container;
-import com.luminous.fusion.model.request.pod.PodCreateRequest;
-import com.luminous.fusion.model.request.pod.PodRemoveRequest;
-import com.luminous.fusion.model.request.pod.PodStartRequest;
-import com.luminous.fusion.model.request.pod.PodStopRequest;
+import com.luminous.fusion.model.request.pod.*;
 import com.luminous.fusion.model.response.agent.ContainerDto;
 import com.luminous.fusion.model.response.pod.PodCreateResponse;
 import com.luminous.fusion.service.PodService;
@@ -26,7 +23,7 @@ public class PodsController {
 
     @PostMapping("/")
     public ResponseEntity<PodCreateResponse> createPod(@RequestBody PodCreateRequest podCreateRequest) throws InterruptedException {
-        log.info("Controller | createPod | PodCreateRequest : {}", podCreateRequest);
+        log.info("Controller-PodsController | createPod | PodCreateRequest : {}", podCreateRequest);
 
         String containerId = this.podService.createPod(podCreateRequest);
 
@@ -76,6 +73,17 @@ public class PodsController {
     public ResponseEntity<String> getPodLogs(@PathVariable String containerId) throws InterruptedException {
         return ResponseEntity.ok(
                 this.podService.getContainerLogs(containerId)
+        );
+    }
+
+    @PostMapping("/images/pull")
+    public ResponseEntity<PullImageResponse> pullImage(@RequestBody PullImageRequest pullImageRequest) throws InterruptedException {
+        log.info("Controller-PodsController | pullImage | PullImageRequest : {}", pullImageRequest);
+
+        this.podService.pullImage(pullImageRequest);
+
+        return ResponseEntity.ok(
+                new PullImageResponse()
         );
     }
 
