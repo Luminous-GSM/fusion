@@ -19,4 +19,5 @@ public class PodDescription {
     private Set<MountMap> mountMaps;
     private String command;
     private String manifestFileUsed;
+    private Long memory;
 }

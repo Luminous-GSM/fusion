@@ -25,6 +25,8 @@ public class PodService {
     private static final String LABEL_IS_FUSION_POD = "is-fusion-pod";
     private static final int WAIT_TIMEOUT = 5;
 
+    private static final Long ONE_MEGABYTE_IN_BYTES = 1048576L;
+
     private final DockerClient dockerClient;
 
     public String getServerVersion() {
@@ -85,6 +87,10 @@ public class PodService {
 //                                .collect(Collectors.toList())
 //                )
                 .withRestartPolicy(RestartPolicy.unlessStoppedRestart());
+
+        if (podCreateRequest.getPodDescription().getMemory() != null && podCreateRequest.getPodDescription().getMemory() != 0) {
+            hostConfig.withMemory(ONE_MEGABYTE_IN_BYTES * podCreateRequest.getPodDescription().getMemory());
+        }
 
         log.info("Docker - Create Container {} | Starting", podCreateRequest.getPodDescription().getName());
 
