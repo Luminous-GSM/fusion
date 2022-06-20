@@ -27,16 +27,16 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.LUMINOUS_PACKAGE_USERNAME }}
           password: ${{ secrets.LUMINOUS_PACKAGE_PAT }}
-      - name: Set up Java for publishing to GitHub Packages
-        uses: actions/setup-java@v2
-        with:
-          java-version: '11'
-          distribution: 'adopt'
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@e6e38bacfdf1a337459f332974bb2327a31aaf4b
-      - name: Change wrapper permissions
-        run: chmod +x ./gradlew
-      - name: Build with Gradle
-        run: ./gradlew build
-      - name: Docker
-        run: ./gradlew docker dockerTag dockerPush dockerTagLatest dockerPushLatest
+      # - name: Set up Java for publishing to GitHub Packages
+      #   uses: actions/setup-java@v2
+      #   with:
+      #     java-version: '11'
+      #     distribution: 'adopt'
+      # - name: Validate Gradle wrapper
+      #   uses: gradle/wrapper-validation-action@e6e38bacfdf1a337459f332974bb2327a31aaf4b
+      # - name: Change wrapper permissions
+      #   run: chmod +x ./gradlew
+      # - name: Build with Gradle
+      #   run: ./gradlew build
+      # - name: Docker
+      #   run: ./gradlew docker dockerTag dockerPush dockerTagLatest dockerPushLatest

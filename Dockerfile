@@ -1,14 +1,16 @@
-FROM amazoncorretto:11-alpine-jdk
+FROM golang:1.18-alpine
 
-RUN mkdir /fusion
-COPY fusion.jar /fusion/app.jar
+WORKDIR /app
 
-EXPOSE 7878
+COPY go.mod ./
+COPY go.sum ./
 
-RUN apk update && apk add --no-cache docker-cli
-VOLUME /var/run/docker.sock
-VOLUME /fusion/plugins
+RUN go mod download
 
-ENV JAVA_OPTS="-XX:+UseSerialGC -Xss512k -XX:MaxRAM=100m"
+COPY *.go ./
 
-ENTRYPOINT ["java","-jar","/fusion/app.jar"]
+RUN go build -o /docker-fusion
+
+EXPOSE 8080
+
+CMD [ "/docker-fusion" ]
