@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 jobs:
   push:
-    name: Push
+    name: Build and Push Image
     runs-on: ubuntu-20.04
     # Always run against a tag, even if the commit into the tag has [docker skip] within the commit message.
     if: "!contains(github.ref, 'develop') || (!contains(github.event.head_commit.message, 'skip docker') && !contains(github.event.head_commit.message, 'docker skip'))"
@@ -44,17 +44,17 @@ jobs:
         with:
           build-args: |
             VERSION=${{ steps.build_info.outputs.version_tag }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
+          labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.docker_meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
       - name: Release Development Build
         uses: docker/build-push-action@v2
         if: "contains(github.ref, 'develop')"
         with:
           build-args: |
             VERSION=dev-${{ steps.build_info.outputs.short_sha }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
+          labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.docker_meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
