@@ -8,6 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	configPath = config.DefaultLocation
+)
+
 var rootCommand = &cobra.Command{
 	Use:   "fusion",
 	Short: "Runs the fusion API server, allowing controller nodes from the Luminous console",
@@ -15,6 +19,10 @@ var rootCommand = &cobra.Command{
 		initConfig()
 	},
 	Run: rootRun,
+}
+
+func init() {
+	rootCommand.PersistentFlags().StringVar(&configPath, "config", config.DefaultLocation, "Set the location for the configuration file")
 }
 
 func Execute() {
@@ -28,5 +36,5 @@ func rootRun(cmd *cobra.Command, _ []string) {
 }
 
 func initConfig() {
-	config.Load()
+	config.Load(configPath)
 }

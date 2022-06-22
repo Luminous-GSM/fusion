@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const defaultLocation = "fusion.yaml"
+const DefaultLocation = "fusion.yaml"
 
 var (
 	_config *Configuration
@@ -64,16 +64,16 @@ func SetDefaults(path string) (*Configuration, error) {
 
 // Load reads the configuration from the provided file and stores it in the
 // global singleton for this node.
-func Load() error {
-	log.WithField("config_file", defaultLocation).Info("loading configuration from file")
+func Load(configLocation string) error {
+	log.WithField("config_file", configLocation).Info("loading configuration from file")
 
 	validate = validator.New()
 
-	b, err := os.ReadFile(defaultLocation)
+	b, err := os.ReadFile(configLocation)
 	if err != nil {
 		return err
 	}
-	c, err := SetDefaults(defaultLocation)
+	c, err := SetDefaults(configLocation)
 	if err != nil {
 		return err
 	}
@@ -93,10 +93,10 @@ func Load() error {
 
 			log.WithFields(
 				log.Fields{
-					"Field":          err.Field(),
-					"Value":          err.Value(),
-					"ValidationType": err.Tag(),
-					"FieldType":      err.Type(),
+					"field":           err.Field(),
+					"value":           err.Value(),
+					"validation_type": err.Tag(),
+					"field_type":      err.Type(),
 				}).Error("Configuration Error: Please ensure the following field is correct.")
 
 		}
@@ -108,6 +108,8 @@ func Load() error {
 
 	// Print the current configuration
 	printConfig()
+
+	log.Info("configuration applied")
 
 	return nil
 }
