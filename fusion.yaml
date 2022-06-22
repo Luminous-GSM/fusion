@@ -1,0 +1,6 @@
+debug: false
+app_name: fusion
+uuid: 23vf
+api:
+  host: 0.0.0.0
+  port: 8899
