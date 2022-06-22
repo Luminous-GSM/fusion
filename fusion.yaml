@@ -1,6 +1,11 @@
 debug: false
-app_name: fusion
-uuid: 23vf
+node:
+  unique_id: 12er12
+  hostname: fusion-node-test
+  name: "TestingFusionNode"
+  description: "A brief description of the node"
 api:
   host: 0.0.0.0
   port: 8899
+  security:
+    token: TotallySecretToken

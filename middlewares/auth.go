@@ -1,28 +1,22 @@
 package middlewares
 
 import (
-	// "strings"
+	"strings"
 
-	// "github.com/luminous-gsm/fusion/config"
+	"github.com/luminous-gsm/fusion/config"
 
 	"github.com/gin-gonic/gin"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// config := config.Get()
-		reqKey := c.Request.Header.Get("X-Auth-Key")
-		reqSecret := c.Request.Header.Get("X-Auth-Secret")
+		requestToken := c.Request.Header.Get("X-Auth-Key")
 
-		var key string
-		var secret string
-		// if key = config.GetString("http.auth.key"); len(strings.TrimSpace(key)) == 0 {
-		// 	c.AbortWithStatus(500)
-		// }
-		// if secret = config.GetString("http.auth.secret"); len(strings.TrimSpace(secret)) == 0 {
-		// 	c.AbortWithStatus(401)
-		// }
-		if key != reqKey || secret != reqSecret {
+		var token string
+		if token = config.Get().Api.Security.Token; len(strings.TrimSpace(token)) == 0 {
+			c.AbortWithStatus(500)
+		}
+		if token != requestToken {
 			c.AbortWithStatus(401)
 			return
 		}

@@ -1,4 +1,4 @@
-package server
+package router
 
 import (
 	"github.com/luminous-gsm/fusion/controllers"
@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter() *gin.Engine {
+func New() *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
