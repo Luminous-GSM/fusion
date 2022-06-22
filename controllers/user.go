@@ -1,8 +1,9 @@
 package controllers
 
 import (
-	"fusion/models"
 	"net/http"
+
+	"github.com/luminous-gsm/fusion/models"
 
 	"github.com/gin-gonic/gin"
 )

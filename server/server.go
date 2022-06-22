@@ -2,12 +2,13 @@ package server
 
 import (
 	"fmt"
-	"fusion/config"
+
+	"github.com/luminous-gsm/fusion/config"
 )
 
 func New() {
-	config := config.GetConfig()
-	r := NewRouter()
-	port := fmt.Sprintf(":%v", config.GetString("server.port"))
-	r.Run(port)
+	config := config.Get()
+	router := NewRouter()
+	port := fmt.Sprintf("%v:%v", config.Api.Host, config.Api.Port)
+	router.Run(port)
 }

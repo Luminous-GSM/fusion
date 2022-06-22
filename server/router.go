@@ -1,8 +1,8 @@
 package server
 
 import (
-	"fusion/controllers"
-	"fusion/middlewares"
+	"github.com/luminous-gsm/fusion/controllers"
+	"github.com/luminous-gsm/fusion/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
