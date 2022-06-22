@@ -16,6 +16,11 @@ jobs:
     steps:
       - name: Code Checkout
         uses: actions/checkout@v2
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/luminous-gsm/fusion
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Install buildx
