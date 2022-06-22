@@ -24,8 +24,6 @@ func Execute() {
 }
 
 func rootRun(cmd *cobra.Command, _ []string) {
-	log.Debug("running in debug mode")
-
 	server.New()
 }
 

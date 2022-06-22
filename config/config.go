@@ -82,6 +82,11 @@ func Load() error {
 		return err
 	}
 
+	if c.Debug {
+		log.SetLevel(log.DebugLevel)
+	}
+	log.Debug("running in debug mode")
+
 	// Validate the configuration according to validation tags in the structs.
 	if err := validate.Struct(c); err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
