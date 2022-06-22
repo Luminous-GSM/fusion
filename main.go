@@ -5,5 +5,6 @@ import (
 )
 
 func main() {
+	// Entry-point into the fusion node.
 	cmd.Execute()
 }

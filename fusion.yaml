@@ -1,4 +1,5 @@
 debug: false
+console_location: http://www.google.com
 node:
   unique_id: 12er12
   hostname: fusion-node-test

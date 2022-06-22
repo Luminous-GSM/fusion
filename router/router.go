@@ -2,29 +2,32 @@ package router
 
 import (
 	"github.com/luminous-gsm/fusion/controllers"
-	"github.com/luminous-gsm/fusion/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
 
 func New() *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
+
 	router := gin.New()
-	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(AttachRequestID(), CaptureErrors(), SetAccessControlHeaders())
+	router.Use(AdvancedLogging())
 
 	health := new(controllers.HealthController)
 
+	// The following routes require no authorization.
 	router.GET("/health", health.Status)
-	router.Use(middlewares.AuthMiddleware())
 
-	v1 := router.Group("v1")
+	// The following routes require authorization
+	router.Use(RequireAuthorization())
 	{
-		userGroup := v1.Group("user")
+		configurationGroup := router.Group("configuration")
 		{
-			user := new(controllers.UserController)
-			userGroup.GET("/:id", user.Retrieve)
+			configuration := new(controllers.ConfigurationController)
+			configurationGroup.GET("/", configuration.Get)
 		}
 	}
-	return router
 
+	return router
 }

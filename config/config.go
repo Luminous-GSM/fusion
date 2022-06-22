@@ -1,14 +1,18 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 
+	"github.com/apex/log"
 	"github.com/creasty/defaults"
 	"github.com/go-playground/validator"
+
+	// "github.com/goccy/go-json"
 	"gopkg.in/yaml.v2"
 )
 
-const DefaultLocation = "fusion.yaml"
+const defaultLocation = "fusion.yaml"
 
 var (
 	_config *Configuration
@@ -40,6 +44,10 @@ type Configuration struct {
 
 	Node NodeInformation  `yaml:"node" json:"node"`
 	Api  ApiConfiguration `yaml:"api" json:"api"`
+
+	ConsoleLocation string `validate:"required,url|ip" json:"console_location" yaml:"console_location"`
+
+	AllowPrivateNetwork bool `default:"false" json:"allow_private_network" yaml:"allow_private_network"`
 }
 
 func SetDefaults(path string) (*Configuration, error) {
@@ -55,15 +63,17 @@ func SetDefaults(path string) (*Configuration, error) {
 }
 
 // Load reads the configuration from the provided file and stores it in the
-// global singleton for this instance.
+// global singleton for this node.
 func Load() error {
+	log.WithField("config_file", defaultLocation).Info("loading configuration from file")
+
 	validate = validator.New()
 
-	b, err := os.ReadFile(DefaultLocation)
+	b, err := os.ReadFile(defaultLocation)
 	if err != nil {
 		return err
 	}
-	c, err := SetDefaults(DefaultLocation)
+	c, err := SetDefaults(defaultLocation)
 	if err != nil {
 		return err
 	}
@@ -72,13 +82,35 @@ func Load() error {
 		return err
 	}
 
+	// Validate the configuration according to validation tags in the structs.
 	if err := validate.Struct(c); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+
+			log.WithFields(
+				log.Fields{
+					"Field":          err.Field(),
+					"Value":          err.Value(),
+					"ValidationType": err.Tag(),
+					"FieldType":      err.Type(),
+				}).Error("Configuration Error: Please ensure the following field is correct.")
+
+		}
 		return err
 	}
 
 	// Store this configuration in the global state.
 	Set(c)
+
+	// Print the current configuration
+	printConfig()
+
 	return nil
+}
+
+func printConfig() {
+	config_marshalled, _ := json.MarshalIndent(_config, "", "	")
+
+	log.Debug(string(config_marshalled))
 }
 
 // Set the global configuration instance.
