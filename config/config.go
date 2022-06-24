@@ -109,7 +109,7 @@ func Load(configLocation string) error {
 	// Print the current configuration
 	printConfig()
 
-	log.Info("configuration applied")
+	log.Info("configuration: configured config")
 
 	return nil
 }

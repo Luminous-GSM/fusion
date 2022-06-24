@@ -1,7 +1,11 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/luminous-gsm/fusion/config"
+	"github.com/luminous-gsm/fusion/environment"
+	"github.com/luminous-gsm/fusion/router"
 	"github.com/luminous-gsm/fusion/server"
 
 	"github.com/apex/log"
@@ -32,7 +36,20 @@ func Execute() {
 }
 
 func rootRun(cmd *cobra.Command, _ []string) {
-	server.New()
+	cfg := config.Get()
+	env, err := environment.NewEnvironment()
+	if err != nil {
+		panic("EXPAND THIS")
+	}
+	mgr, err := server.NewManager(env)
+	if err != nil {
+		panic("EXPAND THIS")
+	}
+	router := router.NewRouter(mgr)
+
+	port := fmt.Sprintf("%v:%v", cfg.Api.Host, cfg.Api.Port)
+	log.Infof("cmd: started API server on %v", port)
+	router.Run(port)
 }
 
 func initConfig() {

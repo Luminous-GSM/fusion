@@ -1,15 +1,86 @@
-package router
+package middleware
 
 import (
+	"context"
 	"crypto/subtle"
 	"io"
 	"net/http"
+	"strings"
 
+	"emperror.dev/errors"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/luminous-gsm/fusion/config"
+	"github.com/luminous-gsm/fusion/server"
 )
+
+// RequestError is a custom error
+type RequestError struct {
+	err    error
+	status int
+	msg    string
+}
+
+func NewError(err error) *RequestError {
+	return &RequestError{
+		// Attach a stacktrace to the error
+		err: errors.WithStackDepthIf(err, 1),
+	}
+}
+
+// Aborts the request and attaches the provided error to the gin
+// context so it can be reported properly.
+func CaptureAndAbort(c *gin.Context, err error) {
+	c.Abort()
+	c.Error(errors.WithStackDepthIf(err, 1))
+}
+
+func (re *RequestError) SetMessage(m string) {
+	re.msg = m
+}
+
+// Default a HTTP-500 error.
+func (re *RequestError) SetStatus(s int) {
+	re.status = s
+}
+
+func (re *RequestError) Cause() error {
+	return re.err
+}
+
+func (re *RequestError) Error() string {
+	return re.err.Error()
+}
+
+func (re *RequestError) Abort(c *gin.Context, status int) {
+	reqId := c.Writer.Header().Get("X-Request-Id")
+
+	event := log.WithField("request_id", reqId).WithField("url", c.Request.URL.String())
+
+	if c.Writer.Status() == 200 {
+		// Handle context deadlines
+		if errors.Is(re.err, context.DeadlineExceeded) {
+			re.SetStatus(http.StatusGatewayTimeout)
+			re.SetMessage("The server could not process this request in time, please try again.")
+		} else if strings.Contains(re.Cause().Error(), "context canceled") {
+			re.SetStatus(http.StatusBadRequest)
+			re.SetMessage("Request aborted by client.")
+		}
+	}
+
+	// c.Writer.Status() will be a non-200 value. Normally marshelling issues
+	if status >= 500 || c.Writer.Status() != 200 {
+		event.WithField("status", status).WithField("error", re.err).Error("error while handling HTTP request")
+	} else {
+		event.WithField("status", status).WithField("error", re.err).Debug("error handling HTTP request (not a server error)")
+	}
+	if re.msg == "" {
+		re.msg = "An unexpected error was encountered while processing this request"
+	}
+
+	c.AbortWithStatusJSON(status, gin.H{"error": re.msg, "request_id": reqId})
+}
 
 // Attaches a unique ID to the incoming HTTP request.
 // The request id is also added to the Gin Context for future reference of the request id.
@@ -108,4 +179,21 @@ func AdvancedLogging() gin.HandlerFunc {
 			return ""
 		},
 	)
+}
+
+// Attach the ServerManager to the gin context for easy access to the manager down the line.
+func AttachServerManager(m *server.ServerManager) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Set("manager", m)
+	}
+}
+
+// Will return the server from the gin.Context or panic if it is
+// not present.
+func GetServerManager(c *gin.Context) *server.ServerManager {
+	v, ok := c.Get("manager")
+	if !ok {
+		panic("Cannot extract server manager")
+	}
+	return v.(*server.ServerManager)
 }
