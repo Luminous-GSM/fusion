@@ -7,13 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(m *server.ServerManager) *gin.Engine {
+func NewRouter(mgr *server.ServerManager) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.AttachRequestID(), middleware.CaptureErrors(), middleware.SetAccessControlHeaders())
-	router.Use(middleware.AttachServerManager(m))
+	router.Use(middleware.AttachServerManager(mgr))
 	router.Use(middleware.AdvancedLogging())
 
 	health := new(HealthController)
@@ -33,6 +33,10 @@ func NewRouter(m *server.ServerManager) *gin.Engine {
 		{
 			pod := new(PodController)
 			podGroup.GET("/", pod.ListPods)
+			podGroup.POST("/create", pod.CreatePod)
+			podGroup.POST("/stop", pod.StopPod)
+			podGroup.POST("/remove", pod.RemovePod)
+			podGroup.POST("/start", pod.StartPod)
 		}
 	}
 

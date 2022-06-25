@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/luminous-gsm/fusion/config"
 	"github.com/luminous-gsm/fusion/server"
+	"go.uber.org/zap"
 )
 
 // RequestError is a custom error
@@ -56,8 +56,6 @@ func (re *RequestError) Error() string {
 func (re *RequestError) Abort(c *gin.Context, status int) {
 	reqId := c.Writer.Header().Get("X-Request-Id")
 
-	event := log.WithField("request_id", reqId).WithField("url", c.Request.URL.String())
-
 	if c.Writer.Status() == 200 {
 		// Handle context deadlines
 		if errors.Is(re.err, context.DeadlineExceeded) {
@@ -71,9 +69,19 @@ func (re *RequestError) Abort(c *gin.Context, status int) {
 
 	// c.Writer.Status() will be a non-200 value. Normally marshelling issues
 	if status >= 500 || c.Writer.Status() != 200 {
-		event.WithField("status", status).WithField("error", re.err).Error("error while handling HTTP request")
+		zap.S().Errorw("error while handling HTTP request",
+			"requestId", reqId,
+			"url", c.Request.URL,
+			"status", status,
+			"Error", re.err,
+		)
 	} else {
-		event.WithField("status", status).WithField("error", re.err).Debug("error handling HTTP request (not a server error)")
+		zap.S().Debugw("error handling HTTP request (not a server error)",
+			"requestId", reqId,
+			"url", c.Request.URL,
+			"status", status,
+			"Error", re.err,
+		)
 	}
 	if re.msg == "" {
 		re.msg = "An unexpected error was encountered while processing this request"
@@ -88,7 +96,6 @@ func AttachRequestID() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		id := uuid.New().String()
 		ctx.Set("request_id", id)
-		ctx.Set("logger", log.WithField("request_id", id))
 		ctx.Header("X-Request-Id", id)
 		ctx.Next()
 	}
@@ -169,13 +176,12 @@ func RequireAuthorization() gin.HandlerFunc {
 func AdvancedLogging() gin.HandlerFunc {
 	return gin.LoggerWithFormatter(
 		func(params gin.LogFormatterParams) string {
-			log.WithFields(log.Fields{
-				"client_ip":  params.ClientIP,
-				"status":     params.StatusCode,
-				"latency":    params.Latency,
-				"request_id": params.Keys["request_id"],
-			}).Debugf("%s %s", params.MethodColor()+params.Method+params.ResetColor(), params.Path)
-
+			zap.S().Debugf("%s %s", params.MethodColor()+params.Method+params.ResetColor(), params.Path,
+				"client_ip", params.ClientIP,
+				"status", params.StatusCode,
+				"latency", params.Latency,
+				"request_id", params.Keys["request_id"],
+			)
 			return ""
 		},
 	)
@@ -196,4 +202,10 @@ func GetServerManager(c *gin.Context) *server.ServerManager {
 		panic("Cannot extract server manager")
 	}
 	return v.(*server.ServerManager)
+}
+
+func RequestDataValidator() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+
+	}
 }

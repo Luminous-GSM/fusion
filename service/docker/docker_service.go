@@ -1,11 +1,12 @@
 package docker
 
 import (
+	"context"
 	"sync"
 
 	"emperror.dev/errors"
-	"github.com/apex/log"
 	"github.com/docker/docker/client"
+	"go.uber.org/zap"
 )
 
 var (
@@ -13,18 +14,23 @@ var (
 )
 
 type DockerService struct {
+	ctx    context.Context
 	client *client.Client
 }
 
 // Returns a docker client.
-func NewDocker() (*DockerService, error) {
+func NewDockerService(context context.Context) (*DockerService, error) {
 	var err error
 	var dockerClient *client.Client
 	_conce.Do(func() {
 		dockerClient, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	})
-	log.Info("docker: configured docker client")
+	if err != nil {
+		return nil, errors.Wrap(err, "docker: could not create client")
+	}
+	zap.S().Info("docker: configured docker client")
 	return &DockerService{
 		client: dockerClient,
-	}, errors.Wrap(err, "docker: could not create client")
+		ctx:    context,
+	}, nil
 }

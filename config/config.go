@@ -1,14 +1,11 @@
 package config
 
 import (
-	"encoding/json"
 	"os"
 
-	"github.com/apex/log"
 	"github.com/creasty/defaults"
 	"github.com/go-playground/validator"
-
-	// "github.com/goccy/go-json"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 )
 
@@ -21,6 +18,7 @@ var (
 // use a single instance of Validate, it caches struct info
 var validate *validator.Validate
 
+// TODO Add validate to normal fields as well, such as only string, or integer
 type NodeInformation struct {
 	UniqueId    string `validate:"required" yaml:"unique_id" json:"unique_id"`
 	Hostname    string `validate:"required" yaml:"hostname" json:"hostname"`
@@ -38,16 +36,41 @@ type ApiConfiguration struct {
 	Security ApiSecurity `yaml:"security" json:"security"`
 }
 
+type PodConfiguration struct {
+	TmpfsSize         string   `default:"100" yaml:"tmpfs_size" json:"tmpfsSize"`
+	ContainerPidLimit int64    `default:"512" yaml:"container_pid_limit" json:"containerPidLimit" `
+	Dns               []string `default:"[\"1.1.1.1\", \"1.0.0.1\"]"`
+}
+
+type SystemConfiguration struct {
+	// The root directory where fusion data is stored.
+	RootDirectory string `default:"/var/lib/fusion" yaml:"root_directory" json:"root_directory"`
+
+	// Directory where logs and events are logged.
+	LogDirectory string `default:"/var/log/fusion" yaml:"log_directory" json:"log_directory"`
+
+	// Directory where the server data is stored at.
+	DataDirectory string `default:"/var/lib/fusion/volumes" validate:"dir,endswith=/" yaml:"data_directory" json:"data_directory"`
+
+	User struct {
+		Uid int `validate:"required" yaml:"uid" json:"uid"`
+		Gid int `validate:"required" yaml:"gid" json:"gid"`
+	} `yaml:"user" json:"user"`
+}
+
 type Configuration struct {
 	path  string
 	Debug bool `default:"false" json:"debug" yaml:"debug"`
 
-	Node NodeInformation  `yaml:"node" json:"node"`
-	Api  ApiConfiguration `yaml:"api" json:"api"`
+	System SystemConfiguration `yaml:"system" json:"system"`
+	Node   NodeInformation     `yaml:"node" json:"node"`
+	Api    ApiConfiguration    `yaml:"api" json:"api"`
 
 	ConsoleLocation string `validate:"required,url|ip" json:"console_location" yaml:"console_location"`
 
 	AllowPrivateNetwork bool `default:"false" json:"allow_private_network" yaml:"allow_private_network"`
+
+	Pod PodConfiguration `yaml:"pod" json:"pod"`
 }
 
 func SetDefaults(path string) (*Configuration, error) {
@@ -65,7 +88,7 @@ func SetDefaults(path string) (*Configuration, error) {
 // Load reads the configuration from the provided file and stores it in the
 // global singleton for this node.
 func Load(configLocation string) error {
-	log.WithField("config_file", configLocation).Info("loading configuration from file")
+	zap.S().Infow("loading configuration from file", "configfile", configLocation)
 
 	validate = validator.New()
 
@@ -82,23 +105,17 @@ func Load(configLocation string) error {
 		return err
 	}
 
-	if c.Debug {
-		log.SetLevel(log.DebugLevel)
-	}
-	log.Debug("running in debug mode")
+	zap.S().Debug("running in debug mode")
 
 	// Validate the configuration according to validation tags in the structs.
 	if err := validate.Struct(c); err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
-
-			log.WithFields(
-				log.Fields{
-					"field":           err.Field(),
-					"value":           err.Value(),
-					"validation_type": err.Tag(),
-					"field_type":      err.Type(),
-				}).Error("Configuration Error: Please ensure the following field is correct.")
-
+			zap.S().Errorw("configuration error: please ensure the following field is correct",
+				"field", err.Field(),
+				"value", err.Value(),
+				"validation_type", err.Tag(),
+				"field_type", err.Type(),
+			)
 		}
 		return err
 	}
@@ -106,18 +123,9 @@ func Load(configLocation string) error {
 	// Store this configuration in the global state.
 	Set(c)
 
-	// Print the current configuration
-	printConfig()
-
-	log.Info("configuration: configured config")
+	zap.S().Info("configuration completed")
 
 	return nil
-}
-
-func printConfig() {
-	config_marshalled, _ := json.MarshalIndent(_config, "", "	")
-
-	log.Debug(string(config_marshalled))
 }
 
 // Set the global configuration instance.

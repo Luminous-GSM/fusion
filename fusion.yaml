@@ -1,4 +1,4 @@
-debug: false
+debug: true
 console_location: http://www.google.com
 node:
   unique_id: 12er12
@@ -6,7 +6,10 @@ node:
   name: "TestingFusionNode"
   description: "A brief description of the node"
 api:
-  host: 0.0.0.0
-  port: 8899
   security:
     token: TotallySecretToken
+system:
+  user:
+    uid: 1000
+    gid: 1000
+  data_directory: C:/data/

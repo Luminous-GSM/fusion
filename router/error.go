@@ -9,6 +9,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/luminous-gsm/fusion/config"
 )
 
 type RequestError struct {
@@ -23,8 +24,9 @@ func WithError(c *gin.Context, err error) error {
 
 func NewError(err error) *RequestError {
 	return &RequestError{
-		err:  err,
-		uuid: uuid.Must(uuid.NewRandom()).String(),
+		err:     err,
+		uuid:    uuid.Must(uuid.NewRandom()).String(),
+		message: err.Error(),
 	}
 }
 
@@ -56,7 +58,11 @@ func (e *RequestError) AbortWithStatus(c *gin.Context, status int) {
 		e.message = "An unexpected error was encountered while processing this request."
 	}
 
-	c.AbortWithStatusJSON(status, gin.H{"error": e.message, "error_id": e.uuid})
+	if config.Get().Debug {
+		c.AbortWithStatusJSON(status, gin.H{"error": e.message, "errorId": e.uuid, "baseError": e.err.Error()})
+	} else {
+		c.AbortWithStatusJSON(status, gin.H{"error": e.message, "errorId": e.uuid})
+	}
 }
 
 func (e *RequestError) Abort(c *gin.Context) {
