@@ -9,7 +9,6 @@ api:
   security:
     token: TotallySecretToken
 system:
-  user:
-    uid: 1000
-    gid: 1000
-  data_directory: C:/data/
+  root_directory: C:/data/root/
+  log_directory: C:/data/logs/
+  data_directory: C:/data/data/

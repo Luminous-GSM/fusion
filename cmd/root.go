@@ -40,6 +40,8 @@ var rootCommand = &cobra.Command{
 
 func init() {
 	rootCommand.PersistentFlags().StringVar(&configPath, "config", config.DefaultLocation, "Set the location for the configuration file")
+
+	rootCommand.AddCommand(configureCommand)
 }
 
 func Execute() {
@@ -84,6 +86,9 @@ func rootRun(cmd *cobra.Command, _ []string) {
 }
 
 func initConfig() {
+
+	Configure()
+
 	if err := config.Load(configPath); err != nil {
 		log.Fatal("could not configure logging")
 	}
@@ -120,7 +125,7 @@ func initLogging() {
 
 		// Logging as JSON to file
 		fileEncoder := zapcore.NewJSONEncoder(loggerConfigEncoder)
-		logFile, err := os.OpenFile(config.Get().System.LogDirectory+"/fusion.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		logFile, err := os.OpenFile(config.Get().System.LogDirectory+"fusion.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_RDWR, 0644)
 		if err != nil {
 			log.Fatal("cmd: failed to create/open fusion log file")
 		}

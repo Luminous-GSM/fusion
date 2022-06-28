@@ -15,19 +15,16 @@ var (
 	_config *Configuration
 )
 
-// use a single instance of Validate, it caches struct info
-var validate *validator.Validate
-
 // TODO Add validate to normal fields as well, such as only string, or integer
 type NodeInformation struct {
 	UniqueId    string `validate:"required" yaml:"unique_id" json:"unique_id"`
-	Hostname    string `validate:"required" yaml:"hostname" json:"hostname"`
+	Hostname    string `default:"localhost" validate:"alphanum" yaml:"hostname" json:"hostname"`
 	Name        string `default:"Fusion" json:"name" yaml:"name"`
 	Description string `default:"Node Control Plane" json:"description" yaml:"description"`
 }
 
 type ApiSecurity struct {
-	Token string `yaml:"token" json:"token" validate:"required"`
+	Token string `validate:"required" yaml:"token" json:"token"`
 }
 
 type ApiConfiguration struct {
@@ -44,17 +41,17 @@ type PodConfiguration struct {
 
 type SystemConfiguration struct {
 	// The root directory where fusion data is stored.
-	RootDirectory string `default:"/var/lib/fusion" yaml:"root_directory" json:"root_directory"`
+	RootDirectory string `default:"/var/lib/fusion/" validate:"endswith=/" yaml:"root_directory" json:"root_directory"`
 
 	// Directory where logs and events are logged.
-	LogDirectory string `default:"/var/log/fusion" yaml:"log_directory" json:"log_directory"`
+	LogDirectory string `default:"/var/log/fusion/" validate:"endswith=/" yaml:"log_directory" json:"log_directory"`
 
 	// Directory where the server data is stored at.
-	DataDirectory string `default:"/var/lib/fusion/volumes" validate:"dir,endswith=/" yaml:"data_directory" json:"data_directory"`
+	DataDirectory string `default:"/var/lib/fusion/volumes/" validate:"endswith=/" yaml:"data_directory" json:"data_directory"`
 
 	User struct {
-		Uid int `validate:"required" yaml:"uid" json:"uid"`
-		Gid int `validate:"required" yaml:"gid" json:"gid"`
+		Uid int `default:"1000" yaml:"uid" json:"uid"`
+		Gid int `default:"1000" yaml:"gid" json:"gid"`
 	} `yaml:"user" json:"user"`
 }
 
@@ -79,8 +76,13 @@ func SetDefaults(path string) (*Configuration, error) {
 	// in the structs. Values set in the configuration file take priority over the
 	// default values.
 	if err := defaults.Set(&c); err != nil {
+		zap.S().Errorw("rrror setting default values", "error", err, "configuration", c)
 		return nil, err
 	}
+
+	// Leave this false, if it's true,
+	// the server will auto turn on debug mode on configuration generation.
+	c.Debug = false
 	c.path = path
 	return &c, nil
 }
@@ -89,8 +91,6 @@ func SetDefaults(path string) (*Configuration, error) {
 // global singleton for this node.
 func Load(configLocation string) error {
 	zap.S().Infow("loading configuration from file", "configfile", configLocation)
-
-	validate = validator.New()
 
 	b, err := os.ReadFile(configLocation)
 	if err != nil {
@@ -105,8 +105,22 @@ func Load(configLocation string) error {
 		return err
 	}
 
+	if err = ValidateConfig(c); err != nil {
+		return err
+	}
+
 	zap.S().Debug("running in debug mode")
 
+	// Store this configuration in the global state.
+	Set(c)
+
+	zap.S().Info("configuration completed")
+
+	return nil
+}
+
+func ValidateConfig(c *Configuration) error {
+	validate := validator.New()
 	// Validate the configuration according to validation tags in the structs.
 	if err := validate.Struct(c); err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
@@ -119,12 +133,6 @@ func Load(configLocation string) error {
 		}
 		return err
 	}
-
-	// Store this configuration in the global state.
-	Set(c)
-
-	zap.S().Info("configuration completed")
-
 	return nil
 }
 

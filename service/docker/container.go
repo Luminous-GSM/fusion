@@ -27,9 +27,6 @@ const (
 	containerStartTimeout   = 5
 	containerStopTimeout    = 5
 	containerRemoveTimmeout = 5
-	isFusionManaged         = "is-fusion-managed"
-	manifestFileUsed        = "manifest-file-used"
-	friendlyName            = "friendly-name"
 )
 
 func (ds DockerService) ListContainers() ([]types.Container, error) {
@@ -78,9 +75,10 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 		Image:        imageRef,
 		Env:          getEnvironmentVariablesFromMaps(podCreateRequest.PodDescription.EnvironmentMaps),
 		Labels: map[string]string{
-			manifestFileUsed: podCreateRequest.PodDescription.ManifestFileUsed,
-			isFusionManaged:  "true",
-			friendlyName:     podCreateRequest.PodDescription.Name,
+			"manifest-file-used": podCreateRequest.PodDescription.ManifestFileUsed,
+			"is-fusion-managed":  "true",
+			"friendly-name":      podCreateRequest.PodDescription.Name,
+			"pod-id":             podUniqueId,
 		},
 	}
 
