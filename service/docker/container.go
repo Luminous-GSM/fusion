@@ -12,6 +12,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/daemon/logger/local"
 	"github.com/docker/go-connections/nat"
@@ -32,9 +33,17 @@ const (
 func (ds DockerService) ListContainers() ([]types.Container, error) {
 	ctx, cancel := context.WithCancel(ds.ctx)
 	defer cancel()
-	// TODO List only fusion pods. Probably filter on labels.
+
+	// Filter the containers that is managed by fusion.
+	// This is important as the user might manually create and use
+	// other containers, and we don't want to manage those.
+	// TODO-low : We can add a query parameter to list all (including fusion non-managed) containers.
+	filters := filters.NewArgs()
+	filters.Add("label", "is-fusion-managed")
+
 	options := types.ContainerListOptions{
-		All: true,
+		All:     true,
+		Filters: filters,
 	}
 	containers, err := ds.client.ContainerList(ctx, options)
 
@@ -51,7 +60,8 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 		return "", err
 	}
 
-	podUniqueId := generateUniqueFolderName(podCreateRequest.PodDescription)
+	podUniqueId := generateUniquePodName(podCreateRequest.PodDescription)
+	zap.S().Infow("generated pod unique id", "podUniqueId", podUniqueId)
 
 	// Cancel after containerPullTimeout of time
 	ctx, cancel := context.WithTimeout(ds.ctx, time.Minute*containerCreateTimeout)
@@ -66,11 +76,6 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 		Hostname:     config.Get().Node.Hostname,
 		Domainname:   "",
 		User:         strconv.Itoa(config.Get().System.User.Uid) + ":" + strconv.Itoa(config.Get().System.User.Gid),
-		AttachStdin:  true,
-		AttachStdout: true,
-		AttachStderr: true,
-		OpenStdin:    true,
-		Tty:          true,
 		ExposedPorts: exposed,
 		Image:        imageRef,
 		Env:          getEnvironmentVariablesFromMaps(podCreateRequest.PodDescription.EnvironmentMaps),
@@ -127,11 +132,16 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 	}
 
 	for _, warning := range result.Warnings {
-		zap.S().Warnw("creating container completed, but there were some warnings",
+		zap.S().Warnw("completed creating container, but there were some warnings",
 			"warning", warning,
 			"image", imageRef,
 		)
 	}
+
+	zap.S().Infow("completed creating container",
+		"imageRef", imageRef,
+		"containerId", result.ID,
+	)
 
 	return result.ID, nil
 }
@@ -216,7 +226,7 @@ func getEnvironmentVariablesFromMaps(environmentVariables []model.EnvironmentMap
 	return dockerStandardEnvironmentVariables
 }
 
-func generateUniqueFolderName(description model.PodDescription) string {
+func generateUniquePodName(description model.PodDescription) string {
 	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
 	b := make([]rune, 10)
 	for i := range b {
@@ -248,12 +258,13 @@ func (ds DockerService) ensureImageExists(imageRef string) error {
 	ctx, cancel := context.WithTimeout(ds.ctx, time.Minute*containerPullTimeout)
 	defer cancel()
 
-	zap.S().Info("ensuring that the image exist")
+	zap.S().Infow("ensuring that the image exist", "imageRef", imageRef)
 
 	// Try and pull the image from the registry
 	pullOptions := types.ImagePullOptions{All: false}
 	out, err := ds.client.ImagePull(ds.ctx, imageRef, pullOptions)
 	if err != nil {
+		zap.S().Warnw("image pull failed, checking if image exists locally", "imageRef", imageRef)
 		// Image pull did not succeed
 		images, ierr := ds.client.ImageList(ctx, types.ImageListOptions{})
 		if ierr != nil {
@@ -281,7 +292,7 @@ func (ds DockerService) ensureImageExists(imageRef string) error {
 	}
 	defer out.Close()
 
-	zap.S().Debugw("pulling docker images", "image", imageRef)
+	zap.S().Infow("pulling docker images", "image", imageRef)
 
 	d := json.NewDecoder(out)
 
@@ -308,7 +319,7 @@ func (ds DockerService) ensureImageExists(imageRef string) error {
 		zap.S().Debugf("docker event: %+v\n", event)
 	}
 
-	zap.S().Debugw("complete docker image pull", "image", imageRef)
+	zap.S().Infow("completed docker image pull", "image", imageRef)
 
 	return nil
 
