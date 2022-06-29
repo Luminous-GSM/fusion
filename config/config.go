@@ -28,8 +28,8 @@ type ApiSecurity struct {
 }
 
 type ApiConfiguration struct {
-	Host     string      `default:"0.0.0.0" yaml:"host"`
-	Port     int         `default:"8899" yaml:"port"`
+	Host     string      `validate:"url|ip" default:"0.0.0.0" yaml:"host"`
+	Port     int         `validate:"numeric" default:"8899" yaml:"port"`
 	Security ApiSecurity `yaml:"security" json:"security"`
 }
 
