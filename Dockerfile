@@ -18,7 +18,6 @@ FROM gcr.io/distroless/static:latest
 COPY --from=builder /etc/os-release /etc/os-release
 
 COPY --from=builder /app/fusion /usr/bin/
-COPY ./fusion.yaml /etc/fusion/config.yml
 
 EXPOSE 8899
 
