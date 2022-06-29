@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -78,6 +79,7 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 		User:         strconv.Itoa(config.Get().System.User.Uid) + ":" + strconv.Itoa(config.Get().System.User.Gid),
 		ExposedPorts: exposed,
 		Image:        imageRef,
+		Tty:          true,
 		Env:          getEnvironmentVariablesFromMaps(podCreateRequest.PodDescription.EnvironmentMaps),
 		Labels: map[string]string{
 			"manifest-file-used": podCreateRequest.PodDescription.ManifestFileUsed,
@@ -322,5 +324,40 @@ func (ds DockerService) ensureImageExists(imageRef string) error {
 	zap.S().Infow("completed docker image pull", "image", imageRef)
 
 	return nil
+
+}
+
+func (ds DockerService) GetLogs(containerId, limit string) ([]string, error) {
+	zap.S().Infow("started get logs", "containerId", containerId)
+
+	// Cancel after containerPullTimeout of time
+	ctx, cancel := context.WithCancel(ds.ctx)
+	defer cancel()
+
+	logOptions := types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Timestamps: true,
+		Tail:       limit,
+	}
+
+	r, err := ds.client.ContainerLogs(ctx, containerId, logOptions)
+	if err != nil {
+		zap.S().Errorw("could not retrieve container logs",
+			"error", err,
+			"containerId", containerId,
+		)
+		return []string{}, err
+	}
+	defer r.Close()
+
+	var logs []string
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		logs = append(logs, scanner.Text())
+	}
+
+	zap.S().Infow("returning container logs", "containerId", containerId)
+	return logs, nil
 
 }

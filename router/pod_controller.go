@@ -98,3 +98,22 @@ func (p PodController) RemovePod(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"containerId": id})
 
 }
+
+func (p PodController) GetLogsPod(c *gin.Context) {
+	s := middleware.GetServerManager(c)
+
+	containerId := c.Param("containerId")
+
+	tail, ok := c.GetQuery("lines")
+	if !ok {
+		tail = "100"
+	}
+
+	logs, err := s.ServiceManager().DockerService().GetLogs(containerId, tail)
+	if err != nil {
+		NewError(err).SetMessage("Could not get container logs. See server logs").Abort(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"logs": logs})
+}
