@@ -1,14 +1,5 @@
 package config
 
-import (
-	"os"
-
-	"github.com/creasty/defaults"
-	"github.com/go-playground/validator"
-	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
-)
-
 const DefaultLocation = "fusion.yaml"
 
 var (
@@ -17,19 +8,19 @@ var (
 
 // TODO Add validate to normal fields as well, such as only string, or integer
 type NodeInformation struct {
-	UniqueId    string `validate:"required" yaml:"unique_id" json:"unique_id"`
-	Hostname    string `default:"localhost" validate:"alphanum" yaml:"hostname" json:"hostname"`
-	Name        string `default:"Fusion" json:"name" yaml:"name"`
-	Description string `default:"Node Control Plane" json:"description" yaml:"description"`
+	UniqueId    string `validate:"required" env:"FUSION_NODE_UNIQUE_ID,required" yaml:"unique_id" json:"unique_id"`
+	Hostname    string `default:"localhost" validate:"alphanum" env:"FUSION_NODE_HOSTNAME" yaml:"hostname" json:"hostname"`
+	Name        string `default:"Fusion" env:"FUSION_NODE_NAME" json:"name" yaml:"name"`
+	Description string `default:"Node Control Plane" env:"FUSION_NODE_DESCRIPTION" json:"description" yaml:"description"`
 }
 
 type ApiSecurity struct {
-	Token string `validate:"required" yaml:"token" json:"token"`
+	Token string `validate:"required" env:"FUSION_API_TOKEN,required" yaml:"token" json:"token"`
 }
 
 type ApiConfiguration struct {
-	Host     string      `validate:"url|ip" default:"0.0.0.0" yaml:"host"`
-	Port     int         `validate:"numeric" default:"8899" yaml:"port"`
+	Host     string      `default:"0.0.0.0" validate:"url|ip" env:"FUSION_API_HOST" yaml:"host" json:"host"`
+	Port     int         `default:"8899" validate:"numeric" env:"FUSION_API_PORT" yaml:"port" json:"port"`
 	Security ApiSecurity `yaml:"security" json:"security"`
 }
 
@@ -41,99 +32,33 @@ type PodConfiguration struct {
 
 type SystemConfiguration struct {
 	// The root directory where fusion data is stored.
-	RootDirectory string `default:"/var/lib/fusion/" validate:"endswith=/" yaml:"root_directory" json:"root_directory"`
+	RootDirectory string `default:"/var/lib/fusion/" validate:"endswith=/" env:"FUSION_ROOT_DIRECTORY" yaml:"root_directory" json:"root_directory"`
 
 	// Directory where logs and events are logged.
-	LogDirectory string `default:"/var/log/fusion/" validate:"endswith=/" yaml:"log_directory" json:"log_directory"`
+	LogDirectory string `default:"/var/log/fusion/" validate:"endswith=/" env:"FUSION_LOG_DIRECTORY" yaml:"log_directory" json:"log_directory"`
 
 	// Directory where the server data is stored at.
-	DataDirectory string `default:"/var/lib/fusion/volumes/" validate:"endswith=/" yaml:"data_directory" json:"data_directory"`
+	DataDirectory string `default:"/var/lib/fusion/volumes/" validate:"endswith=/" env:"FUSION_DATA_DIRECTORY" yaml:"data_directory" json:"data_directory"`
 
 	User struct {
-		Uid int `default:"1000" yaml:"uid" json:"uid"`
-		Gid int `default:"1000" yaml:"gid" json:"gid"`
+		Uid int `default:"1000" env:"FUSION_UID" yaml:"uid" json:"uid"`
+		Gid int `default:"1000" env:"FUSION_GID" yaml:"gid" json:"gid"`
 	} `yaml:"user" json:"user"`
 }
 
 type Configuration struct {
-	path  string
-	Debug bool `default:"false" json:"debug" yaml:"debug"`
+	Path  string `default:"config.yml" env:"FUSION_CONFIG_PATH,required"`
+	Debug bool   `default:"false" json:"debug" yaml:"debug"`
 
 	System SystemConfiguration `yaml:"system" json:"system"`
 	Node   NodeInformation     `yaml:"node" json:"node"`
 	Api    ApiConfiguration    `yaml:"api" json:"api"`
 
-	ConsoleLocation string `validate:"required,url|ip" json:"console_location" yaml:"console_location"`
+	ConsoleLocation string `validate:"required,url|ip" env:"FUSION_CONSOLE_LOCATION,required" json:"console_location" yaml:"console_location"`
 
-	AllowPrivateNetwork bool `default:"false" json:"allow_private_network" yaml:"allow_private_network"`
+	AllowPrivateNetwork bool `default:"false" env:"FUSION_ALLOW_PRIVATE_NETWORK" json:"allow_private_network" yaml:"allow_private_network"`
 
 	Pod PodConfiguration `yaml:"pod" json:"pod"`
-}
-
-func SetDefaults(path string) (*Configuration, error) {
-	var c Configuration
-	// Configures the default values for many of the configuration options present
-	// in the structs. Values set in the configuration file take priority over the
-	// default values.
-	if err := defaults.Set(&c); err != nil {
-		zap.S().Errorw("rrror setting default values", "error", err, "configuration", c)
-		return nil, err
-	}
-
-	// Leave this false, if it's true,
-	// the server will auto turn on debug mode on configuration generation.
-	c.Debug = false
-	c.path = path
-	return &c, nil
-}
-
-// Load reads the configuration from the provided file and stores it in the
-// global singleton for this node.
-func Load(configLocation string) error {
-	zap.S().Infow("loading configuration from file", "configfile", configLocation)
-
-	b, err := os.ReadFile(configLocation)
-	if err != nil {
-		return err
-	}
-	c, err := SetDefaults(configLocation)
-	if err != nil {
-		return err
-	}
-
-	if err := yaml.Unmarshal(b, c); err != nil {
-		return err
-	}
-
-	if err = ValidateConfig(c); err != nil {
-		return err
-	}
-
-	zap.S().Debug("running in debug mode")
-
-	// Store this configuration in the global state.
-	Set(c)
-
-	zap.S().Info("configuration completed")
-
-	return nil
-}
-
-func ValidateConfig(c *Configuration) error {
-	validate := validator.New()
-	// Validate the configuration according to validation tags in the structs.
-	if err := validate.Struct(c); err != nil {
-		for _, err := range err.(validator.ValidationErrors) {
-			zap.S().Errorw("configuration error: please ensure the following field is correct",
-				"field", err.Field(),
-				"value", err.Value(),
-				"validation_type", err.Tag(),
-				"field_type", err.Type(),
-			)
-		}
-		return err
-	}
-	return nil
 }
 
 // Set the global configuration instance.

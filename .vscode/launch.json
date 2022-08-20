@@ -11,8 +11,9 @@
             "mode": "auto",
             "program": "${workspaceRoot}",
             "env": {
-                "FUSION_UNIQUE_ID": "UniqueId",
-                "FUSION_API_SECRET_TOKEN": "SuperSecretToken",
+                "FUSION_CONFIG_PATH": "fusion.yaml",
+                "FUSION_NODE_UNIQUE_ID": "UniqueId",
+                "FUSION_API_TOKEN": "SuperSecretToken",
                 "FUSION_CONSOLE_LOCATION": "http://localhost:3200",
                 "FUSION_LOG_DIRECTORY": "C:/data/logs/",
                 "FUSION_DATA_DIRECTORY": "C:/data/"

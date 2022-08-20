@@ -3,8 +3,10 @@ package cmd
 import (
 	"errors"
 	"os"
-	"strconv"
 
+	"github.com/caarlos0/env/v6"
+	"github.com/creasty/defaults"
+	"github.com/go-playground/validator"
 	"github.com/luminous-gsm/fusion/config"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -30,100 +32,59 @@ func configureRun(cmd *cobra.Command, _ []string) {
 }
 
 func Configure() {
+
 	// Writes config if files does not exist, or it should be overriden.
-	if !FileExist(configPath) || forceConfigOverride {
-		zap.S().Infow("configuration file not found",
+	if !fileExist(configPath) || forceConfigOverride {
+		zap.S().Infow("configuration file not found,creating one",
 			"configPath", configPath,
 			"forceConfigOverride", forceConfigOverride,
 		)
-
-		// Required environment variables
-		apiSecretToken := getEnvironment("FUSION_API_SECRET_TOKEN", true)
-		uniqueId := getEnvironment("FUSION_UNIQUE_ID", true)
-		consoleLocation := getEnvironment("FUSION_CONSOLE_LOCATION", true)
-
-		// Optional environment variables
-		hostname := getEnvironment("FUSION_HOSTNAME", false)
-		name := getEnvironment("FUSION_NAME", false)
-		description := getEnvironment("FUSION_DESCRIPTION", false)
-		logDirectory := getEnvironment("FUSION_LOG_DIRECTORY", false)
-		dataDirectory := getEnvironment("FUSION_DATA_DIRECTORY", false)
-		rootDirectory := getEnvironment("FUSION_ROOT_DIRECTORY", false)
-
-		fusionIp := getEnvironment("FUSION_API_HOST", false)
-		fusionPortStr := getEnvironment("FUSION_API_PORT", false)
-		var fusionPort int
-		if fusionPortStr != "" {
-			if fusionPort, err := strconv.Atoi(fusionPortStr); err != nil {
-				zap.S().Panicw("FUSION_API_PORT is not a number", "FUSION_API_PORT", fusionPort)
-			}
-		} else {
-			fusionPort = 0
-		}
-
-		conf, err := config.SetDefaults(configPath)
-		if err != nil {
-			zap.S().Panicw("could not set configuration defaults", "configPath", configPath)
-		}
-
-		conf.ConsoleLocation = consoleLocation
-		conf.Node.UniqueId = uniqueId
-		conf.Api.Security.Token = apiSecretToken
-
-		if hostname != "" {
-			conf.Node.Hostname = hostname
-		}
-		if name != "" {
-			conf.Node.Name = name
-		}
-		if description != "" {
-			conf.Node.Description = description
-		}
-		if logDirectory != "" {
-			conf.System.LogDirectory = logDirectory
-		}
-		if dataDirectory != "" {
-			conf.System.DataDirectory = dataDirectory
-		}
-		if rootDirectory != "" {
-			conf.System.RootDirectory = rootDirectory
-		}
-		if fusionIp != "" {
-			conf.Api.Host = fusionIp
-		}
-		if fusionPort != 0 {
-			conf.Api.Port = fusionPort
-		}
-
-		if err = config.ValidateConfig(conf); err != nil {
-			zap.S().Panicw("could not set configuration defaults",
-				"error", err,
-				"configPath", configPath,
-				"config", conf,
-			)
-		}
-
-		WriteToDisk(conf, configPath)
 	} else {
 		zap.S().Infow("configuration file found", "configPath", configPath)
 	}
 
+	conf := basicConfigurationOperations(configPath)
+
+	// Store this configuration in the global state.
+	config.Set(conf)
+
+	zap.S().Info("configuration completed")
+
 }
 
-func getEnvironment(envVariable string, fatal bool) string {
-	value, ok := os.LookupEnv(envVariable)
-	if !ok {
-		if fatal {
-			zap.S().Fatalf("%v environment variable not found, exiting now", envVariable)
-		} else {
-			zap.S().Infof("%v environment variable not found, using default value", envVariable)
-		}
-
+// Do basic configuration operations
+func basicConfigurationOperations(configPath string) *config.Configuration {
+	// Step 1 : Create configuration with defaults
+	conf, err := getDefaultedConfiguration(configPath)
+	if err != nil {
+		zap.S().Fatal("default configuration creation error")
 	}
-	return value
+
+	// Step 2 : Load configuration values from file
+	if err := loadFromFile(conf, configPath); err != nil {
+		zap.S().Fatal("configuration file loading error")
+	}
+
+	// Step 3 : Load configuration from environment variables
+	if err = loadSystemEnvironments(conf); err != nil {
+		zap.S().Fatalw("evironment variables loading error", "errors", err)
+	}
+
+	// Step 4 : Validate the config for validation errors
+	if err = validateConfig(conf); err != nil {
+		zap.S().Fatal("configuration valitation error")
+	}
+
+	// Step 5 : Write to disk
+	if err := writeToDisk(conf, configPath); err != nil {
+		zap.S().Fatal("configuration writing error")
+	}
+
+	return conf
 }
 
-func WriteToDisk(c *config.Configuration, configPath string) error {
+// Write the configuration file to disk
+func writeToDisk(c *config.Configuration, configPath string) error {
 
 	b, err := yaml.Marshal(&c)
 	if err != nil {
@@ -137,7 +98,8 @@ func WriteToDisk(c *config.Configuration, configPath string) error {
 	return nil
 }
 
-func FileExist(configPath string) bool {
+// Check if the file exist
+func fileExist(configPath string) bool {
 	if _, err := os.Stat(configPath); err == nil {
 		return true
 
@@ -147,4 +109,71 @@ func FileExist(configPath string) bool {
 	} else {
 		return false
 	}
+}
+
+// Get the configuration struct with the default values set
+func getDefaultedConfiguration(path string) (*config.Configuration, error) {
+	var conf config.Configuration
+	// Configures the default values for many of the configuration options present
+	// in the structs. Values set in the configuration file take priority over the
+	// default values.
+	if err := defaults.Set(&conf); err != nil {
+		zap.S().Errorw("rrror setting default values", "error", err, "configuration", conf)
+		return nil, err
+	}
+
+	// Leave this false,
+	// if it's true, the server will auto turn on debug mode on configuration generation.
+	conf.Debug = false
+	conf.Path = path
+	return &conf, nil
+}
+
+// Load reads the configuration from the provided file
+func loadFromFile(conf *config.Configuration, configPath string) error {
+	zap.S().Infow("loading configuration from file", "configfile", configPath)
+
+	fileByteArray, err := os.ReadFile(configPath)
+	if err != nil {
+		zap.S().Errorw("configuration read error",
+			"error", err,
+			"configPath", configPath,
+		)
+		return err
+	}
+
+	if err := yaml.Unmarshal(fileByteArray, conf); err != nil {
+		zap.S().Errorw("yaml parsing error",
+			"error", err,
+			"configPath", configPath,
+		)
+		return err
+	}
+
+	return nil
+}
+
+// Validate the configuration struct based on specified validations
+func validateConfig(conf *config.Configuration) error {
+	validate := validator.New()
+	// Validate the configuration according to validation tags in the structs.
+	if err := validate.Struct(conf); err != nil {
+		for _, err := range err.(validator.ValidationErrors) {
+			zap.S().Errorw("configuration error: please ensure the following field is correct",
+				"field", err.Field(),
+				"value", err.Value(),
+				"validation_type", err.Tag(),
+				"field_type", err.Type(),
+			)
+		}
+		return err
+	}
+	return nil
+}
+
+func loadSystemEnvironments(conf *config.Configuration) error {
+	if err := env.Parse(conf); err != nil {
+		return err
+	}
+	return nil
 }

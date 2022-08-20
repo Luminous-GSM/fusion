@@ -7,6 +7,7 @@ require emperror.dev/errors v0.8.1
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
+	github.com/caarlos0/env/v6 v6.9.3 // indirect
 	github.com/containerd/fifo v1.0.0 // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/docker v20.10.17+incompatible // indirect

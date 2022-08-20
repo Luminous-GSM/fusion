@@ -89,9 +89,6 @@ func initConfig() {
 
 	Configure()
 
-	if err := config.Load(configPath); err != nil {
-		log.Fatal("could not configure logging")
-	}
 }
 
 func initLogging() {
@@ -140,4 +137,6 @@ func initLogging() {
 
 	zap.ReplaceGlobals(logger)
 	zap.S().Info("configured global logger")
+
+	zap.S().Debug("running in debug mode")
 }
