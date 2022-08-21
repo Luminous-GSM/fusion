@@ -74,9 +74,9 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 	}
 
 	containerConfig := &container.Config{
-		Hostname:     config.Get().Node.Hostname,
+		Hostname:     config.Get().NodeHostname,
 		Domainname:   "",
-		User:         strconv.Itoa(config.Get().System.User.Uid) + ":" + strconv.Itoa(config.Get().System.User.Gid),
+		User:         strconv.Itoa(config.Get().SystemUserUid) + ":" + strconv.Itoa(config.Get().SystemUserGid),
 		ExposedPorts: exposed,
 		Image:        imageRef,
 		Tty:          true,
@@ -242,7 +242,7 @@ func getMountsFromMountMaps(description model.PodDescription, podUniqueId string
 	for _, mountItem := range description.MountMaps {
 		dockerStandardMountVariables = append(dockerStandardMountVariables, mount.Mount{
 			Type:     mount.TypeBind,
-			Source:   config.Get().System.DataDirectory + podUniqueId + mountItem.Destination,
+			Source:   config.Get().DataDirectory + podUniqueId + mountItem.Destination,
 			Target:   mountItem.Destination,
 			ReadOnly: false,
 		})

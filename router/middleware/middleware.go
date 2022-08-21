@@ -131,7 +131,7 @@ func SetAccessControlHeaders() gin.HandlerFunc {
 	allowPrivateNetwork := cfg.AllowPrivateNetwork
 
 	return func(ctx *gin.Context) {
-		ctx.Header("Actxcess-Control-Allow-Origin", location)
+		ctx.Header("Access-Control-Allow-Origin", location)
 		ctx.Header("Access-Control-Allow-Credentials", "true")
 		ctx.Header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 		ctx.Header("Access-Control-Allow-Headers", "Accept, Accept-Encoding, Authorization, Cache-Control, Content-Type, Content-Length, Origin, X-Real-IP, X-CSRF-Token, X-Api-Key")
@@ -156,7 +156,7 @@ func SetAccessControlHeaders() gin.HandlerFunc {
 // permission string. A unique node token is required to operate this node.
 func RequireAuthorization() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		token := config.Get().Api.Security.Token
+		token := config.Get().ApiSecurityToken
 		auth := ctx.Request.Header.Get("X-Auth-Key")
 		if auth == "" {
 			ctx.Header("WWW-Authenticate", "X Api Key")

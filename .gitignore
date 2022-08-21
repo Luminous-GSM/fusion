@@ -29,6 +29,8 @@ fusion.exe
 
 fusion.yaml
 
+./fusion/
+
 # IDE/Editor files (VS Code)
 /.vscode
 

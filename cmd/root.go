@@ -32,6 +32,7 @@ var rootCommand = &cobra.Command{
 		zap.ReplaceGlobals(logger)
 
 		initConfig()
+		initDirectories()
 		initLogging()
 		zap.S().Infow("configured config", "config", config.Get())
 	},
@@ -77,18 +78,32 @@ func rootRun(cmd *cobra.Command, _ []string) {
 	router := router.NewRouter(mgr)
 
 	// Run the HTTP server
-	port := fmt.Sprintf("%v:%v", cfg.Api.Host, cfg.Api.Port)
+	port := fmt.Sprintf("%v:%v", cfg.ApiHost, cfg.ApiPort)
 	zap.S().Infow("started api server",
-		"host", cfg.Api.Host,
-		"port", cfg.Api.Port,
+		"host", cfg.ApiHost,
+		"port", cfg.ApiPort,
 	)
 	router.Run(port)
 }
 
 func initConfig() {
-
 	Configure()
+}
 
+func initDirectories() {
+	// Create log file
+	err := os.MkdirAll(config.Get().LogDirectory, os.ModePerm)
+	if err != nil {
+		zap.S().Errorw("cmd: cannot create logging directory", "error", err)
+	}
+	err = os.MkdirAll(config.Get().DataDirectory, os.ModePerm)
+	if err != nil {
+		zap.S().Errorw("cmd: cannot create data directory", "error", err)
+	}
+	err = os.MkdirAll(config.Get().RootDirectory, os.ModePerm)
+	if err != nil {
+		zap.S().Errorw("cmd: cannot create root directory", "error", err)
+	}
 }
 
 func initLogging() {
@@ -122,7 +137,7 @@ func initLogging() {
 
 		// Logging as JSON to file
 		fileEncoder := zapcore.NewJSONEncoder(loggerConfigEncoder)
-		logFile, err := os.OpenFile(config.Get().System.LogDirectory+"fusion.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_RDWR, 0644)
+		logFile, err := os.OpenFile(config.Get().LogDirectory+"fusion.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_RDWR, 0644)
 		if err != nil {
 			log.Fatal("cmd: failed to create/open fusion log file")
 		}

@@ -13,10 +13,11 @@
             "env": {
                 "FUSION_CONFIG_PATH": "fusion.yaml",
                 "FUSION_NODE_UNIQUE_ID": "UniqueId",
-                "FUSION_API_TOKEN": "SuperSecretToken",
+                "FUSION_API_SECURITY_TOKEN": "SuperSecretToken",
                 "FUSION_CONSOLE_LOCATION": "http://localhost:3200",
-                "FUSION_LOG_DIRECTORY": "C:/data/logs/",
-                "FUSION_DATA_DIRECTORY": "C:/data/"
+                "FUSION_SYSTEM_LOG_DIRECTORY": "./fusion/logs/",
+                "FUSION_SYSTEM_DATA_DIRECTORY": "./fusion/data/",
+                "FUSION_SYSTEM_ROOT_DIRECTORY": "./fusion/root/",
               }
         }
     ]

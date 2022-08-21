@@ -33,17 +33,20 @@ func configureRun(cmd *cobra.Command, _ []string) {
 
 func Configure() {
 
+	var generateNewConfig = false
 	// Writes config if files does not exist, or it should be overriden.
 	if !fileExist(configPath) || forceConfigOverride {
 		zap.S().Infow("configuration file not found,creating one",
 			"configPath", configPath,
 			"forceConfigOverride", forceConfigOverride,
 		)
+		generateNewConfig = true
 	} else {
 		zap.S().Infow("configuration file found", "configPath", configPath)
+		generateNewConfig = false
 	}
 
-	conf := basicConfigurationOperations(configPath)
+	conf := basicConfigurationOperations(configPath, generateNewConfig)
 
 	// Store this configuration in the global state.
 	config.Set(conf)
@@ -53,16 +56,18 @@ func Configure() {
 }
 
 // Do basic configuration operations
-func basicConfigurationOperations(configPath string) *config.Configuration {
+func basicConfigurationOperations(configPath string, generateNewConfig bool) *config.Configuration {
 	// Step 1 : Create configuration with defaults
 	conf, err := getDefaultedConfiguration(configPath)
 	if err != nil {
 		zap.S().Fatal("default configuration creation error")
 	}
 
-	// Step 2 : Load configuration values from file
-	if err := loadFromFile(conf, configPath); err != nil {
-		zap.S().Fatal("configuration file loading error")
+	if !generateNewConfig {
+		// Step 2 : Load configuration values from file
+		if err := loadFromFile(conf, configPath); err != nil {
+			zap.S().Fatal("configuration file loading error")
+		}
 	}
 
 	// Step 3 : Load configuration from environment variables
