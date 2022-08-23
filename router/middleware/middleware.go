@@ -127,14 +127,18 @@ func CaptureErrors() gin.HandlerFunc {
 // the requests.
 func SetAccessControlHeaders() gin.HandlerFunc {
 	cfg := config.Get()
-	location := cfg.ConsoleLocation
+	consoleUrl := cfg.ConsoleUrl
+	managementUrl := cfg.ManagementUrl
 	allowPrivateNetwork := cfg.AllowPrivateNetwork
 
 	return func(ctx *gin.Context) {
-		ctx.Header("Access-Control-Allow-Origin", location)
+		currentOrigin := ctx.Request.Header.Get("Origin")
+		if currentOrigin == managementUrl || currentOrigin == consoleUrl {
+			ctx.Header("Access-Control-Allow-Origin", currentOrigin)
+		}
 		ctx.Header("Access-Control-Allow-Credentials", "true")
 		ctx.Header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
-		ctx.Header("Access-Control-Allow-Headers", "Accept, Accept-Encoding, Authorization, Cache-Control, Content-Type, Content-Length, Origin, X-Real-IP, X-CSRF-Token, X-Api-Key")
+		ctx.Header("Access-Control-Allow-Headers", "Accept, Accept-Encoding, Authorization, Cache-Control, Content-Type, Content-Length, Origin, X-Real-IP, X-CSRF-Token, X-Auth-Key")
 
 		// @see https://developer.chrome.com/blog/private-network-access-update/?utm_source=devtools
 		if allowPrivateNetwork {
@@ -148,6 +152,7 @@ func SetAccessControlHeaders() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusNoContent)
 			return
 		}
+
 		ctx.Next()
 	}
 }
@@ -158,6 +163,7 @@ func RequireAuthorization() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := config.Get().ApiSecurityToken
 		auth := ctx.Request.Header.Get("X-Auth-Key")
+
 		if auth == "" {
 			ctx.Header("WWW-Authenticate", "X Api Key")
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "The required authorization heads were not present in the request."})

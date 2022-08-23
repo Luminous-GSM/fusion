@@ -24,6 +24,11 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 	// The following routes require authorization
 	router.Use(middleware.RequireAuthorization())
 	{
+		agentGroup := router.Group("agent")
+		{
+			agent := new(AgentController)
+			agentGroup.GET("/ping", agent.PingAgent)
+		}
 		configurationGroup := router.Group("configuration")
 		{
 			configuration := new(ConfigurationController)
