@@ -19,7 +19,7 @@
                 "FUSION_CONSOLE_URL": "http://localhost:3000",
                 "FUSION_MANAGEMENT_URL": "http://localhost:8898",
                 "FUSION_SYSTEM_LOG_DIRECTORY": "./fusion/logs/",
-                "FUSION_SYSTEM_DATA_DIRECTORY": "./fusion/data/",
+                "FUSION_SYSTEM_DATA_DIRECTORY": "C:/fusion/data/",
                 "FUSION_SYSTEM_ROOT_DIRECTORY": "./fusion/root/",
             }
         }

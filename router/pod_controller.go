@@ -13,7 +13,7 @@ type PodController struct{}
 func (p PodController) ListPods(c *gin.Context) {
 	s := middleware.GetServerManager(c)
 
-	containers, err := s.ServiceManager().DockerService().ListContainers()
+	containers, err := s.ServiceManager().DockerService().ListContainers([]string{})
 	if err != nil {
 		NewError(err).Abort(c)
 		return
@@ -57,7 +57,17 @@ func (p PodController) StartPod(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"containerId": id})
+	containers, err := s.ServiceManager().DockerService().ListContainers([]string{id})
+	if err != nil {
+		NewError(err).SetMessage("Could not start container. See server logs").Abort(c)
+		return
+	}
+	if len(containers) != 1 {
+		NewError(err).SetMessage("Could not get container based on id. See server logs").Abort(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, containers[0])
 
 }
 
@@ -76,7 +86,17 @@ func (p PodController) StopPod(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"containerId": id})
+	containers, err := s.ServiceManager().DockerService().ListContainers([]string{id})
+	if err != nil {
+		NewError(err).SetMessage("Could not start container. See server logs").Abort(c)
+		return
+	}
+	if len(containers) != 1 {
+		NewError(err).SetMessage("Could not get container based on id. See server logs").Abort(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, containers[0])
 
 }
 

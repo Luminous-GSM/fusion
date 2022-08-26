@@ -28,6 +28,8 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 		{
 			agent := new(AgentController)
 			agentGroup.GET("/ping", agent.PingAgent)
+			agentGroup.GET("/dashboard", agent.Dashboard)
+			agentGroup.GET("/system-load", agent.GetSystemLoad)
 		}
 		configurationGroup := router.Group("configuration")
 		{

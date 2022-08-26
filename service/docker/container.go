@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/luminous-gsm/fusion/config"
 	"github.com/luminous-gsm/fusion/model"
+	"github.com/luminous-gsm/fusion/model/domain"
 	"github.com/luminous-gsm/fusion/model/request"
 	"go.uber.org/zap"
 )
@@ -31,24 +33,60 @@ const (
 	containerRemoveTimmeout = 5
 )
 
-func (ds DockerService) ListContainers() ([]types.Container, error) {
+func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionContainerModel, error) {
 	ctx, cancel := context.WithCancel(ds.ctx)
 	defer cancel()
 
 	// Filter the containers that is managed by fusion.
 	// This is important as the user might manually create and use
 	// other containers, and we don't want to manage those.
-	// TODO-low : We can add a query parameter to list all (including fusion non-managed) containers.
+	// TODO -low : We can add a query parameter to list all (including fusion non-managed) containers.
 	filters := filters.NewArgs()
 	filters.Add("label", "is-fusion-managed")
+	for _, id := range containerIds {
+		filters.Add("id", id)
+	}
 
 	options := types.ContainerListOptions{
 		All:     true,
 		Filters: filters,
 	}
 	containers, err := ds.client.ContainerList(ctx, options)
+	if err != nil {
+		zap.S().Errorw("docker: could not list containers", "error", err)
+		return nil, err
+	}
 
-	return containers, errors.Wrap(err, "docker: could not list containers")
+	consoleContainers := []domain.FusionContainerModel{}
+
+	for _, container := range containers {
+		ports := []domain.ContainerPort{}
+
+		for _, port := range container.Ports {
+			ports = append(ports, domain.ContainerPort{
+				Ip:          port.IP,
+				PrivatePort: string(rune(port.PrivatePort)),
+				PublicPort:  string(rune(port.PublicPort)),
+				Type:        port.Type,
+			})
+		}
+
+		consoleContainers = append(consoleContainers, domain.FusionContainerModel{
+			Id:      container.ID,
+			Command: container.Command,
+			Created: int(container.Created),
+			Image:   container.Image,
+			ImageId: container.ImageID,
+			Names:   container.Names,
+			Status:  container.Status,
+			State:   domain.FusionContainerState(container.State),
+			Ports:   ports,
+		})
+	}
+
+	zap.S().Debugw("docker: got containers")
+
+	return consoleContainers, nil
 }
 
 // Create the container for the specific pod
@@ -126,6 +164,11 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 	}
 
 	zap.S().Debugw("host configuration", "hostConfiguration", hostConfig)
+
+	err = ds.createDirectories(hostConfig.Mounts)
+	if err != nil {
+		return "", err
+	}
 
 	result, err := ds.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, podUniqueId)
 	if err != nil {
@@ -360,4 +403,53 @@ func (ds DockerService) GetLogs(containerId, limit string) ([]string, error) {
 	zap.S().Infow("returning container logs", "containerId", containerId)
 	return logs, nil
 
+}
+
+func (ds DockerService) GetImages() ([]domain.FusionImageModel, error) {
+	zap.S().Infow("started get images")
+
+	// Cancel after containerPullTimeout of time
+	ctx, cancel := context.WithCancel(ds.ctx)
+	defer cancel()
+
+	options := types.ImageListOptions{
+		All: true,
+	}
+	images, err := ds.client.ImageList(ctx, options)
+	if err != nil {
+		zap.S().Errorw("could not retrieve images",
+			"error", err,
+		)
+		return nil, err
+	}
+
+	zap.S().Infow("got all images")
+
+	consoleImages := []domain.FusionImageModel{}
+	for _, image := range images {
+		consoleImages = append(consoleImages, domain.FusionImageModel{
+			Id:         image.ID,
+			Created:    int(image.Created),
+			Size:       int(image.Size),
+			Containers: int(image.Containers),
+		})
+	}
+
+	return consoleImages, nil
+
+}
+
+func (ds DockerService) createDirectories(mounts []mount.Mount) error {
+	zap.S().Debugw("docker: creating directories", "directories", mounts)
+
+	for _, mount := range mounts {
+		err := os.MkdirAll(mount.Source, os.ModePerm)
+		if err != nil {
+			zap.S().Errorw("docker: cannot create logging directory", "error", err)
+			return err
+		}
+	}
+
+	zap.S().Debug("docker: created directories")
+	return nil
 }

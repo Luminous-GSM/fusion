@@ -11,13 +11,13 @@ type PodCreateRequest struct {
 }
 
 type PodStartRequest struct {
-	ContainerId `validate:"required" json:"container"`
+	ContainerId
 }
 
 type PodStopRequest struct {
-	ContainerId `validate:"required" json:"container"`
+	ContainerId
 }
 
 type PodRemoveRequest struct {
-	ContainerId `validate:"required" json:"container"`
+	ContainerId
 }
