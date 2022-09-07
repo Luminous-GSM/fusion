@@ -3,7 +3,7 @@ package model
 // Description of a pod
 type PodDescription struct {
 	Id               string           `validate:"required" json:"id"`
-	Name             string           `validate:"required,alphanum,max=128" json:"name"`
+	Name             string           `validate:"required,max=128" json:"name"`
 	Image            string           `validate:"required" json:"image"`
 	Tag              string           `validate:"required" json:"tag"`
 	PortMaps         []PortMap        `validate:"required" json:"portMaps"`

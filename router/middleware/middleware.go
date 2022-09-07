@@ -9,6 +9,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/luminous-gsm/fusion/config"
 	"github.com/luminous-gsm/fusion/server"
@@ -138,7 +139,9 @@ func SetAccessControlHeaders() gin.HandlerFunc {
 		}
 		ctx.Header("Access-Control-Allow-Credentials", "true")
 		ctx.Header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+		// ctx.Header("Access-Control-Allow-Methods", "*")
 		ctx.Header("Access-Control-Allow-Headers", "Accept, Accept-Encoding, Authorization, Cache-Control, Content-Type, Content-Length, Origin, X-Real-IP, X-CSRF-Token, X-Auth-Key")
+		// ctx.Header("Access-Control-Allow-Headers", "*")
 
 		// @see https://developer.chrome.com/blog/private-network-access-update/?utm_source=devtools
 		if allowPrivateNetwork {
@@ -152,6 +155,8 @@ func SetAccessControlHeaders() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusNoContent)
 			return
 		}
+
+		ctx.Request.Header.Del("Origin")
 
 		ctx.Next()
 	}
@@ -174,6 +179,41 @@ func RequireAuthorization() gin.HandlerFunc {
 			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "You are not authorized to access this endpoint."})
 			return
 		}
+		ctx.Next()
+	}
+}
+
+// Authenticates the request token against the given
+// permission string. A unique node token is required to operate this node.
+func RequireTemporaryAuthorization() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		auth := ctx.Request.URL.Query().Get("auth")
+
+		if auth == "" {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "The required authorization heads were not present in the request."})
+			return
+		}
+
+		parsedToken, err := jwt.Parse(auth, func(token *jwt.Token) (interface{}, error) {
+			// Don't forget to validate the alg is what you expect:
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, errors.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			}
+
+			// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+			key := config.Get().ApiSecurityToken
+			return []byte(key), nil
+		})
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "You are not authorized to access this endpoint."})
+			return
+		}
+
+		if !parsedToken.Valid {
+			ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "You are not authorized to access this endpoint."})
+			return
+		}
+
 		ctx.Next()
 	}
 }

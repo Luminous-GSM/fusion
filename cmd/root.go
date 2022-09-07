@@ -83,7 +83,10 @@ func rootRun(cmd *cobra.Command, _ []string) {
 		"host", cfg.ApiHost,
 		"port", cfg.ApiPort,
 	)
-	router.Run(port)
+	err = router.RunTLS(port, fmt.Sprintf("%vfusion.crt", config.Get().CertsDirectory), fmt.Sprintf("%vfusion.key", config.Get().CertsDirectory))
+	if err != nil {
+		zap.S().DPanicw("failed to start TLS server.", "error", err)
+	}
 }
 
 func initConfig() {

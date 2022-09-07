@@ -21,6 +21,11 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 	// The following routes require no authorization.
 	router.GET("/health", health.Status)
 
+	tempAuthGroup := router.Group("ws", middleware.RequireTemporaryAuthorization())
+	{
+		tempAuthGroup.GET("/node", runWebsocket)
+	}
+
 	// The following routes require authorization
 	router.Use(middleware.RequireAuthorization())
 	{
@@ -30,6 +35,7 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 			agentGroup.GET("/ping", agent.PingAgent)
 			agentGroup.GET("/dashboard", agent.Dashboard)
 			agentGroup.GET("/system-load", agent.GetSystemLoad)
+			agentGroup.GET("/temp-auth", agent.TemporaryAuthentication)
 		}
 		configurationGroup := router.Group("configuration")
 		{

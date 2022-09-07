@@ -44,3 +44,6 @@ debug
 *.pprof
 *.pdf
 pprof.*
+
+# Development Certificates
+/certs

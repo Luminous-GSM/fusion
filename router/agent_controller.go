@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/luminous-gsm/fusion/model/domain"
 	"github.com/luminous-gsm/fusion/model/response"
 	"github.com/luminous-gsm/fusion/router/middleware"
 )
@@ -58,14 +57,25 @@ func (agent AgentController) Dashboard(c *gin.Context) {
 }
 
 func (agent AgentController) GetSystemLoad(c *gin.Context) {
+	s := middleware.GetServerManager(c)
 
-	systemLoadResponse := &response.SystemLoadResponse{
-		SystemLoadModel: domain.SystemLoadModel{
-			CpuLoad:  "50",
-			RamLoad:  "20",
-			HddUsage: "10",
-		},
+	systemLoad, err := s.ServiceManager().NodeService().GetSystemLoad()
+	if err != nil {
+		NewError(err).SetMessage("Could not get containers. See server logs").Abort(c)
+		return
 	}
 
-	c.JSON(http.StatusOK, systemLoadResponse)
+	c.JSON(http.StatusOK, systemLoad)
+}
+
+func (agent AgentController) TemporaryAuthentication(c *gin.Context) {
+	s := middleware.GetServerManager(c)
+
+	token, err := s.ServiceManager().NodeService().TemporaryAuthentication()
+	if err != nil {
+		NewError(err).SetMessage("Could not generate temporary authentication token").Abort(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": token})
 }

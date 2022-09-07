@@ -10,4 +10,7 @@ build:
 run-docker-luminous-pov:
 	docker run --name fusion-luminous-pov -e FUSION_UNIQUE_ID=UniqueId -e FUSION_API_SECRET_TOKEN=SuperSecretToken -e FUSION_CONSOLE_LOCATION=http://localhost:3200 ghcr.io/luminous-gsm/fusion:local
 
+certificate:
+	openssl req -x509 -newkey rsa:4096 -days 3650 -nodes -keyout ./certs/fusion.key -out ./certs/fusion.crt -subj "/CN=luminous-gsm.com" -addext "subjectAltName=DNS:luminous-gsm.com"
+
 .PHONY: all docker

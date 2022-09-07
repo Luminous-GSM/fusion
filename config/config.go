@@ -24,7 +24,8 @@ type Configuration struct {
 	// Directory where logs and events are logged.
 	LogDirectory string `default:"/var/log/fusion/" validate:"endswith=/" env:"FUSION_SYSTEM_LOG_DIRECTORY" yaml:"system_log_directory" json:"system_log_directory"`
 	// Directory where the server data is stored at.
-	DataDirectory string `default:"/var/lib/fusion/volumes/" validate:"endswith=/" env:"FUSION_SYSTEM_DATA_DIRECTORY" yaml:"system_data_directory" json:"system_data_directory"`
+	DataDirectory  string `default:"/var/lib/fusion/volumes/" validate:"endswith=/" env:"FUSION_SYSTEM_DATA_DIRECTORY" yaml:"system_data_directory" json:"system_data_directory"`
+	CertsDirectory string `default:"/var/lib/fusion/certs/" validate:"endswith=/" env:"FUSION_SYSTEM_CERTS_DIRECTORY" yaml:"system_certs_directory" json:"system_certs_directory"`
 	// User IDs
 	SystemUserUid int `default:"1000" env:"FUSION_SYSTEM_UID" yaml:"system_uid" json:"system_uid"`
 	SystemUserGid int `default:"1000" env:"FUSION_SYSTEM_GID" yaml:"system_gid" json:"system_gid"`

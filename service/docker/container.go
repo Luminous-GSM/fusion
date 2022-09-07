@@ -65,8 +65,8 @@ func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionCo
 		for _, port := range container.Ports {
 			ports = append(ports, domain.ContainerPort{
 				Ip:          port.IP,
-				PrivatePort: string(rune(port.PrivatePort)),
-				PublicPort:  string(rune(port.PublicPort)),
+				PrivatePort: strconv.FormatUint(uint64(port.PrivatePort), 10),
+				PublicPort:  strconv.FormatUint(uint64(port.PublicPort), 10),
 				Type:        port.Type,
 			})
 		}
@@ -134,7 +134,7 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 	hostConfig := &container.HostConfig{
 		PortBindings: bindings,
 
-		Mounts: getMountsFromMountMaps(podCreateRequest.PodDescription, podUniqueId),
+		Mounts: getMountsFromMountMaps(podCreateRequest.PodDescription),
 
 		DNS: config.Get().Pod.Dns,
 
@@ -280,12 +280,12 @@ func generateUniquePodName(description model.PodDescription) string {
 	return description.Name + "-" + string(b)
 }
 
-func getMountsFromMountMaps(description model.PodDescription, podUniqueId string) []mount.Mount {
+func getMountsFromMountMaps(description model.PodDescription) []mount.Mount {
 	var dockerStandardMountVariables []mount.Mount
 	for _, mountItem := range description.MountMaps {
 		dockerStandardMountVariables = append(dockerStandardMountVariables, mount.Mount{
 			Type:     mount.TypeBind,
-			Source:   config.Get().DataDirectory + podUniqueId + mountItem.Destination,
+			Source:   config.Get().DataDirectory + description.Name + mountItem.Destination,
 			Target:   mountItem.Destination,
 			ReadOnly: false,
 		})
