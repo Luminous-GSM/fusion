@@ -1,6 +1,7 @@
-package router
+package rest
 
 import (
+	"github.com/luminous-gsm/fusion/config"
 	"github.com/luminous-gsm/fusion/router/middleware"
 	"github.com/luminous-gsm/fusion/server"
 
@@ -8,7 +9,11 @@ import (
 )
 
 func NewRouter(mgr *server.ServerManager) *gin.Engine {
-	gin.SetMode(gin.ReleaseMode)
+	if config.Get().Debug {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -23,7 +28,7 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 
 	tempAuthGroup := router.Group("ws", middleware.RequireTemporaryAuthorization())
 	{
-		tempAuthGroup.GET("/node", runWebsocket)
+		tempAuthGroup.GET("/node", RunWebSocket)
 	}
 
 	// The following routes require authorization
@@ -36,6 +41,7 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 			agentGroup.GET("/dashboard", agent.Dashboard)
 			agentGroup.GET("/system-load", agent.GetSystemLoad)
 			agentGroup.GET("/temp-auth", agent.TemporaryAuthentication)
+			agentGroup.POST("/manual-event", agent.PublishManualEvent)
 		}
 		configurationGroup := router.Group("configuration")
 		{

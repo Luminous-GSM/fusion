@@ -19,6 +19,7 @@ import (
 	"github.com/docker/docker/daemon/logger/local"
 	"github.com/docker/go-connections/nat"
 	"github.com/luminous-gsm/fusion/config"
+	"github.com/luminous-gsm/fusion/event"
 	"github.com/luminous-gsm/fusion/model"
 	"github.com/luminous-gsm/fusion/model/domain"
 	"github.com/luminous-gsm/fusion/model/request"
@@ -31,7 +32,26 @@ const (
 	containerStartTimeout   = 5
 	containerStopTimeout    = 5
 	containerRemoveTimmeout = 5
+
+	eventContainerOperationStart    = "create-pod-started"
+	eventContainerOperationFinished = "create-pod-finished"
+	eventContainerOpertaionDownoad  = "create-pod-downloading"
 )
+
+func (ds DockerService) publishEvent(operation, message string) {
+	ds.log().Debugw("publish docker container event", "message", message)
+	event.FireEvent(
+		event.EVENT_DOCKER_POD_CREATE,
+		event.FusionEvent[event.FusionDockerEventData]{
+			Entity: []*string{},
+			Event:  event.EVENT_DOCKER_POD_CREATE,
+			Data: event.FusionDockerEventData{
+				Operation: operation,
+				Message:   message,
+			},
+		},
+	)
+}
 
 func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionContainerModel, error) {
 	ctx, cancel := context.WithCancel(ds.ctx)
@@ -91,16 +111,19 @@ func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionCo
 
 // Create the container for the specific pod
 func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateRequest) (string, error) {
+	ds.publishEvent(eventContainerOperationStart, "Starting Fusion Pod Creation")
+	defer ds.publishEvent(eventContainerOperationFinished, "Finished Fusion Pod Creation")
+
 	imageRef := podCreateRequest.PodDescription.Image + ":" + podCreateRequest.PodDescription.Tag
 
-	zap.S().Infow("creating container", "image", imageRef)
+	ds.log().Debugw("creating container", "image", imageRef)
 
 	if err := ds.ensureImageExists(imageRef); err != nil {
 		return "", err
 	}
 
 	podUniqueId := generateUniquePodName(podCreateRequest.PodDescription)
-	zap.S().Infow("generated pod unique id", "podUniqueId", podUniqueId)
+	ds.log().Debugw("generated pod unique id", "podUniqueId", podUniqueId)
 
 	// Cancel after containerPullTimeout of time
 	ctx, cancel := context.WithTimeout(ds.ctx, time.Minute*containerCreateTimeout)
@@ -127,7 +150,7 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 		},
 	}
 
-	zap.S().Debugw("container configuration", "containerConfiguration", containerConfig)
+	ds.log().Debugw("container configuration", "containerConfiguration", containerConfig)
 
 	tmpfsSize := config.Get().Pod.TmpfsSize
 
@@ -163,7 +186,7 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 		ReadonlyRootfs: true,
 	}
 
-	zap.S().Debugw("host configuration", "hostConfiguration", hostConfig)
+	ds.log().Debugw("host configuration", "hostConfiguration", hostConfig)
 
 	err = ds.createDirectories(hostConfig.Mounts)
 	if err != nil {
@@ -172,18 +195,18 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 
 	result, err := ds.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, podUniqueId)
 	if err != nil {
-		zap.S().Errorw("error creating container", "error", err)
+		ds.log().Errorw("error creating container", "error", err)
 		return "", err
 	}
 
 	for _, warning := range result.Warnings {
-		zap.S().Warnw("completed creating container, but there were some warnings",
+		ds.log().Debugw("completed creating container, but there were some warnings",
 			"warning", warning,
 			"image", imageRef,
 		)
 	}
 
-	zap.S().Infow("completed creating container",
+	ds.log().Debugw("completed creating container",
 		"imageRef", imageRef,
 		"containerId", result.ID,
 	)
@@ -298,18 +321,18 @@ func getMountsFromMountMaps(description model.PodDescription) []mount.Mount {
 // If the image does not exist, pull it.
 // If the image does exist locally, do nothing.
 func (ds DockerService) ensureImageExists(imageRef string) error {
-
+	defer ds.publishEvent(eventContainerOpertaionDownoad, "Downloading Pod Image - Completed")
 	// Cancel after containerPullTimeout of time
 	ctx, cancel := context.WithTimeout(ds.ctx, time.Minute*containerPullTimeout)
 	defer cancel()
 
-	zap.S().Infow("ensuring that the image exist", "imageRef", imageRef)
+	ds.log().Debugw("ensuring that the image exist", "imageRef", imageRef)
 
 	// Try and pull the image from the registry
 	pullOptions := types.ImagePullOptions{All: false}
 	out, err := ds.client.ImagePull(ds.ctx, imageRef, pullOptions)
 	if err != nil {
-		zap.S().Warnw("image pull failed, checking if image exists locally", "imageRef", imageRef)
+		ds.log().Debugw("image pull failed, checking if image exists locally", "imageRef", imageRef)
 		// Image pull did not succeed
 		images, ierr := ds.client.ImageList(ctx, types.ImageListOptions{})
 		if ierr != nil {
@@ -322,7 +345,7 @@ func (ds DockerService) ensureImageExists(imageRef string) error {
 					continue
 				}
 
-				zap.S().Warnw("unable to pull requested image from remote source, however the image exists locally",
+				ds.log().Debugw("unable to pull requested image from remote source, however the image exists locally",
 					"image", imageRef,
 					"error", err.Error(),
 				)
@@ -337,7 +360,7 @@ func (ds DockerService) ensureImageExists(imageRef string) error {
 	}
 	defer out.Close()
 
-	zap.S().Infow("pulling docker images", "image", imageRef)
+	ds.log().Debugw("pulling docker images", "image", imageRef)
 
 	d := json.NewDecoder(out)
 
@@ -361,10 +384,18 @@ func (ds DockerService) ensureImageExists(imageRef string) error {
 			panic(err)
 		}
 
-		zap.S().Debugf("docker event: %+v\n", event)
+		// ds.log().Debugf("docker event: %+v\n", event)
+
+		if event.Status == "Downloading" {
+			// percentage := ((event.ProgressDetail.Current / event.ProgressDetail.Total) * 100)
+			// publishEvent(eventContainerOpertaionDownoad, "Downloading Pod Image - "+strconv.Itoa(percentage)+"%")
+
+			ds.publishEvent(eventContainerOpertaionDownoad, event.Progress)
+		}
+
 	}
 
-	zap.S().Infow("completed docker image pull", "image", imageRef)
+	ds.log().Debugw("completed docker image pull", "image", imageRef)
 
 	return nil
 

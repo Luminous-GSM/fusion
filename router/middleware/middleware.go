@@ -222,7 +222,8 @@ func RequireTemporaryAuthorization() gin.HandlerFunc {
 func AdvancedLogging() gin.HandlerFunc {
 	return gin.LoggerWithFormatter(
 		func(params gin.LogFormatterParams) string {
-			zap.S().Debugf("%s %s", params.MethodColor()+params.Method+params.ResetColor(), params.Path,
+			zap.S().Named("middleware").Debugw("rest request",
+				"path", params.Path,
 				"client_ip", params.ClientIP,
 				"status", params.StatusCode,
 				"latency", params.Latency,

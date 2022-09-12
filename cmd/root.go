@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/luminous-gsm/fusion/config"
-	"github.com/luminous-gsm/fusion/router"
+	"github.com/luminous-gsm/fusion/docker"
+	"github.com/luminous-gsm/fusion/event"
+	"github.com/luminous-gsm/fusion/node"
+	"github.com/luminous-gsm/fusion/router/rest"
 	"github.com/luminous-gsm/fusion/server"
-	"github.com/luminous-gsm/fusion/service"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -57,17 +59,13 @@ func rootRun(cmd *cobra.Command, _ []string) {
 	// Create main context
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Create new environment
-	srvMgr, err := service.NewServiceManager(ctx)
-
-	if err != nil {
-		zap.S().Fatalw("failed to initiate environment",
-			"error", err,
-		)
-	}
+	// Initialize the services and their event listeners
+	event.InitEventBus().InitEventChannels()
+	docker.InitDockerService(ctx).InitEventListeners()
+	node.InitNodeService(ctx).InitEventListeners()
 
 	// Create new server manager
-	mgr, err := server.NewManager(ctx, cancel, srvMgr)
+	mgr, err := server.NewManager(ctx, cancel)
 	if err != nil {
 		zap.S().Fatalw("failed to initiate server manager",
 			"error", err,
@@ -75,7 +73,7 @@ func rootRun(cmd *cobra.Command, _ []string) {
 	}
 
 	// Create new router
-	router := router.NewRouter(mgr)
+	router := rest.NewRouter(mgr)
 
 	// Run the HTTP server
 	port := fmt.Sprintf("%v:%v", cfg.ApiHost, cfg.ApiPort)
