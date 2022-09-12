@@ -13,11 +13,6 @@ var (
 	eventService *EventService
 )
 
-const (
-	EVENT_REQUEST_POD_CREATE = "event:request:pod:create"
-	EVENT_DOCKER_POD_CREATE  = "event:docker:pod:create"
-)
-
 type EventService struct{}
 
 func InitEventBus() *EventService {

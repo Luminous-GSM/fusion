@@ -33,17 +33,19 @@ func RunWebSocket(c *gin.Context) {
 		//Read Message from client
 		err := websockController.Connection.ReadJSON(&eventMessage)
 		if err != nil {
-			zap.S().Errorw("websocket: read JSON error", "error", err.Error())
+			zap.S().Named("websocket").Errorw("read JSON error", "error", err)
 			if ws.IsUnexpectedCloseError(err) {
-				zap.S().Errorw("error handling websocket message for server", "error", err)
+				zap.S().Named("websocket").Errorw("error handling websocket message for server", "error", err)
 				break
 			}
 			continue
 		}
 
+		zap.S().Named("websocket").Debugw("received websocket message", "message", eventMessage)
+
 		go func(eventMessage event.FusionEvent[map[string]interface{}]) {
 			if err := websockController.HandleEvent(eventMessage); err != nil {
-				zap.S().Errorw("websocket: error handling event", "error", err)
+				zap.S().Named("websocket").Errorw("error handling event", "error", err)
 			}
 		}(eventMessage)
 

@@ -32,10 +32,6 @@ const (
 	containerStartTimeout   = 5
 	containerStopTimeout    = 5
 	containerRemoveTimmeout = 5
-
-	eventContainerOperationStart    = "create-pod-started"
-	eventContainerOperationFinished = "create-pod-finished"
-	eventContainerOpertaionDownoad  = "create-pod-downloading"
 )
 
 func (ds DockerService) publishEvent(operation, message string) {
@@ -111,8 +107,8 @@ func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionCo
 
 // Create the container for the specific pod
 func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateRequest) (string, error) {
-	ds.publishEvent(eventContainerOperationStart, "Starting Fusion Pod Creation")
-	defer ds.publishEvent(eventContainerOperationFinished, "Finished Fusion Pod Creation")
+	ds.publishEvent(event.OPERATION_CONTAINER_CREATE_START, "Starting Fusion Pod Creation")
+	defer ds.publishEvent(event.OPERATION_CONTAINER_CREATE_FINISH, "Finished Fusion Pod Creation")
 
 	imageRef := podCreateRequest.PodDescription.Image + ":" + podCreateRequest.PodDescription.Tag
 
@@ -321,7 +317,8 @@ func getMountsFromMountMaps(description model.PodDescription) []mount.Mount {
 // If the image does not exist, pull it.
 // If the image does exist locally, do nothing.
 func (ds DockerService) ensureImageExists(imageRef string) error {
-	defer ds.publishEvent(eventContainerOpertaionDownoad, "Downloading Pod Image - Completed")
+	ds.publishEvent(event.OPERATION_IMAGE_DOWNLOAD_START, "Downloading Pod Image - Starting")
+	defer ds.publishEvent(event.OPERATION_IMAGE_DOWNLOAD_FINISH, "Downloading Pod Image - Completed")
 	// Cancel after containerPullTimeout of time
 	ctx, cancel := context.WithTimeout(ds.ctx, time.Minute*containerPullTimeout)
 	defer cancel()
@@ -374,9 +371,9 @@ func (ds DockerService) ensureImageExists(imageRef string) error {
 		} `json:"progressDetail"`
 	}
 
-	var event *Event
+	var imageEvent *Event
 	for {
-		if err := d.Decode(&event); err != nil {
+		if err := d.Decode(&imageEvent); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -386,11 +383,11 @@ func (ds DockerService) ensureImageExists(imageRef string) error {
 
 		// ds.log().Debugf("docker event: %+v\n", event)
 
-		if event.Status == "Downloading" {
+		if imageEvent.Status == "Downloading" {
 			// percentage := ((event.ProgressDetail.Current / event.ProgressDetail.Total) * 100)
 			// publishEvent(eventContainerOpertaionDownoad, "Downloading Pod Image - "+strconv.Itoa(percentage)+"%")
 
-			ds.publishEvent(eventContainerOpertaionDownoad, event.Progress)
+			ds.publishEvent(event.OPERATION_IMAGE_DOWNLOAD_PROGRESS, imageEvent.Progress)
 		}
 
 	}

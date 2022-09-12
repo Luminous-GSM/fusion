@@ -68,7 +68,7 @@ func (websock *WebsocketController) UnregisterServerEventListeners() {
 	// }
 }
 
-func (controller *WebsocketController) SendJSON(v string) error {
+func (controller *WebsocketController) SendJSON(v interface{}) error {
 	controller.Mu.Lock()
 	defer controller.Mu.Unlock()
 
