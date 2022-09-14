@@ -112,3 +112,23 @@ func (agent AgentController) PublishManualEvent(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "done"})
 }
+
+func (agent AgentController) GetAllocatedPorts(c *gin.Context) {
+	containers, err := docker.Instance().ListContainers([]string{})
+	if err != nil {
+		NewError(err).SetMessage("listing containers error. See server logs").AbortWithStatus(c, http.StatusBadRequest)
+		return
+	}
+
+	var ports []string
+
+	for _, container := range containers {
+		for _, port := range container.Ports {
+			ports = append(ports, port.PrivatePort)
+		}
+
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ports": ports})
+
+}

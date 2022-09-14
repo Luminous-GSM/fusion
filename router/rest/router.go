@@ -42,6 +42,7 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 			agentGroup.GET("/system-load", agent.GetSystemLoad)
 			agentGroup.GET("/temp-auth", agent.TemporaryAuthentication)
 			agentGroup.POST("/manual-event", agent.PublishManualEvent)
+			agentGroup.GET("/allocated-ports", agent.GetAllocatedPorts)
 		}
 		configurationGroup := router.Group("configuration")
 		{

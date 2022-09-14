@@ -69,22 +69,40 @@ func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionCo
 	}
 	containers, err := ds.client.ContainerList(ctx, options)
 	if err != nil {
-		zap.S().Errorw("docker: could not list containers", "error", err)
+		ds.log().Errorw("could not list containers", "error", err)
 		return nil, err
 	}
 
 	consoleContainers := []domain.FusionContainerModel{}
 
 	for _, container := range containers {
+
+		inspect, err := ds.client.ContainerInspect(ctx, container.ID)
+		if err != nil {
+			ds.log().Errorw("could not inspect container", "error", err, "containerId", container.ID)
+			return nil, err
+		}
+
 		ports := []domain.ContainerPort{}
 
-		for _, port := range container.Ports {
-			ports = append(ports, domain.ContainerPort{
-				Ip:          port.IP,
-				PrivatePort: strconv.FormatUint(uint64(port.PrivatePort), 10),
-				PublicPort:  strconv.FormatUint(uint64(port.PublicPort), 10),
-				Type:        port.Type,
-			})
+		if len(container.Ports) == 0 {
+			for key := range inspect.Config.ExposedPorts {
+				ports = append(ports, domain.ContainerPort{
+					Ip:          "",
+					PrivatePort: key.Port(),
+					PublicPort:  "0",
+					Type:        key.Proto(),
+				})
+			}
+		} else {
+			for _, port := range container.Ports {
+				ports = append(ports, domain.ContainerPort{
+					Ip:          port.IP,
+					PrivatePort: strconv.FormatUint(uint64(port.PrivatePort), 10),
+					PublicPort:  strconv.FormatUint(uint64(port.PublicPort), 10),
+					Type:        port.Type,
+				})
+			}
 		}
 
 		consoleContainers = append(consoleContainers, domain.FusionContainerModel{
@@ -99,6 +117,8 @@ func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionCo
 			Ports:   ports,
 		})
 	}
+
+	// ds.client.ContainerInspectWithRaw()
 
 	zap.S().Debugw("docker: got containers")
 
@@ -117,9 +137,6 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 	if err := ds.ensureImageExists(imageRef); err != nil {
 		return "", err
 	}
-
-	podUniqueId := generateUniquePodName(podCreateRequest.PodDescription)
-	ds.log().Debugw("generated pod unique id", "podUniqueId", podUniqueId)
 
 	// Cancel after containerPullTimeout of time
 	ctx, cancel := context.WithTimeout(ds.ctx, time.Minute*containerCreateTimeout)
@@ -142,7 +159,7 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 			"manifest-file-used": podCreateRequest.PodDescription.ManifestFileUsed,
 			"is-fusion-managed":  "true",
 			"friendly-name":      podCreateRequest.PodDescription.Name,
-			"pod-id":             podUniqueId,
+			"pod-id":             podCreateRequest.PodDescription.Name,
 		},
 	}
 
@@ -189,7 +206,7 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 		return "", err
 	}
 
-	result, err := ds.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, podUniqueId)
+	result, err := ds.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, podCreateRequest.PodDescription.Name)
 	if err != nil {
 		ds.log().Errorw("error creating container", "error", err)
 		return "", err
