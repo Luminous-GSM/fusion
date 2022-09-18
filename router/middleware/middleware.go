@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"emperror.dev/errors"
 	"github.com/gin-gonic/gin"
@@ -254,5 +255,11 @@ func GetServerManager(c *gin.Context) *server.ServerManager {
 func RequestDataValidator() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
+	}
+}
+
+func LocalDelay() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		time.Sleep(1 * time.Second)
 	}
 }

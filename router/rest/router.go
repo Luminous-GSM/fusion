@@ -20,6 +20,7 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 	router.Use(middleware.AttachRequestID(), middleware.CaptureErrors(), middleware.SetAccessControlHeaders())
 	router.Use(middleware.AttachServerManager(mgr))
 	router.Use(middleware.AdvancedLogging())
+	router.Use(middleware.LocalDelay())
 
 	health := new(HealthController)
 
