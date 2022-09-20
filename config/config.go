@@ -13,10 +13,10 @@ type PodConfiguration struct {
 }
 
 type Configuration struct {
-	Path            string `default:"config.yml" env:"FUSION_CONFIG_PATH,required"`
+	Path            string `default:"config.yml" env:"FUSION_CONFIG_PATH,required" json:"path"`
 	Debug           bool   `default:"false" env:"FUSION_DEBUG" json:"debug" yaml:"debug"`
 	Version         string `default:"0.1" json:"version" yaml:"version" env:"FUSION_VERSION"`
-	HostingPlatform string `default:"local" json:"hostingPlatformType" yaml:"hostingPlatformType" env:"FUSION_HOSTING_PLATFORM_TYPE" validate:"oneof=daemon local aws"`
+	HostingPlatform string `default:"self" json:"hostingPlatformType" yaml:"hostingPlatformType" env:"FUSION_HOSTING_PLATFORM_TYPE" validate:"oneof=self aws"`
 
 	// |-----> System CONFIGURATION <-----|
 	// The root directory where fusion data is stored.

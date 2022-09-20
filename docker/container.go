@@ -49,6 +49,17 @@ func (ds DockerService) publishEvent(operation, message string) {
 	)
 }
 
+func (ds DockerService) Info() (types.Info, error) {
+	info, err := ds.client.Info(ds.ctx)
+	if err != nil {
+		ds.log().Errorw("could not list containers", "error", err)
+		return types.Info{}, err
+	}
+
+	return info, nil
+
+}
+
 func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionContainerModel, error) {
 	ctx, cancel := context.WithCancel(ds.ctx)
 	defer cancel()

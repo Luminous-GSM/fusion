@@ -8,7 +8,7 @@ import (
 	"github.com/luminous-gsm/fusion/event"
 	"github.com/luminous-gsm/fusion/model/response"
 	"github.com/luminous-gsm/fusion/node"
-	"github.com/luminous-gsm/fusion/router/middleware"
+	"github.com/luminous-gsm/fusion/utils"
 	"go.uber.org/zap"
 )
 
@@ -16,14 +16,18 @@ type AgentController struct{}
 
 func (agent AgentController) PingAgent(c *gin.Context) {
 
+	nodeWarnings := node.Instance().GetNodeWarnings()
+	nodeDescription := node.Instance().GetNodeDescription()
+
 	containers, err := docker.Instance().ListContainers([]string{})
 	if err != nil {
-		NewError(err).SetMessage("Could not get container count. See server logs").Abort(c)
-		return
+		nodeDescription.ActivePods = 0
+		zap.S().With("controller", "AgentController").Errorw("Could not list docker containers", "error", err)
+	} else {
+		nodeDescription.ActivePods = len(containers)
 	}
 
-	nodeDescription := node.Instance().GetNodeDescription()
-	nodeDescription.ActivePods = len(containers)
+	nodeDescription.Warnings = nodeWarnings
 
 	nodeResponse := &response.NodeDescriptionResponse{
 		NodeDescriptionModel: nodeDescription,
@@ -81,10 +85,9 @@ func (agent AgentController) TemporaryAuthentication(c *gin.Context) {
 }
 
 func (agent AgentController) PublishManualEvent(c *gin.Context) {
-	s := middleware.GetServerManager(c)
 
 	var publishManualEventRequest event.PublishManualEventRequest
-	if err := s.BindAndValidate(c, &publishManualEventRequest); err != nil {
+	if err := utils.BindAndValidate(c, &publishManualEventRequest); err != nil {
 		NewError(err).SetMessage("Bind or data struct validation error. See server logs").AbortWithStatus(c, http.StatusBadRequest)
 		return
 	}

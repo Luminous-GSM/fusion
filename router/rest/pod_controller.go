@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/luminous-gsm/fusion/docker"
 	"github.com/luminous-gsm/fusion/model/request"
-	"github.com/luminous-gsm/fusion/router/middleware"
+	"github.com/luminous-gsm/fusion/utils"
 )
 
 type PodController struct{}
@@ -23,10 +23,9 @@ func (p PodController) ListPods(c *gin.Context) {
 }
 
 func (p PodController) CreatePod(c *gin.Context) {
-	s := middleware.GetServerManager(c)
 
 	var podCreateRequest request.PodCreateRequest
-	if err := s.BindAndValidate(c, &podCreateRequest); err != nil {
+	if err := utils.BindAndValidate(c, &podCreateRequest); err != nil {
 		NewError(err).SetMessage("Bind or data struct validation error. See server logs").AbortWithStatus(c, http.StatusBadRequest)
 		return
 	}
@@ -42,10 +41,9 @@ func (p PodController) CreatePod(c *gin.Context) {
 }
 
 func (p PodController) StartPod(c *gin.Context) {
-	s := middleware.GetServerManager(c)
 
 	var podStartRequest request.PodStartRequest
-	if err := s.BindAndValidate(c, &podStartRequest); err != nil {
+	if err := utils.BindAndValidate(c, &podStartRequest); err != nil {
 		NewError(err).SetMessage("Bind or data struct validation error. See server logs").AbortWithStatus(c, http.StatusBadRequest)
 		return
 	}
@@ -71,10 +69,9 @@ func (p PodController) StartPod(c *gin.Context) {
 }
 
 func (p PodController) StopPod(c *gin.Context) {
-	s := middleware.GetServerManager(c)
 
 	var podStopRequest request.PodStopRequest
-	if err := s.BindAndValidate(c, &podStopRequest); err != nil {
+	if err := utils.BindAndValidate(c, &podStopRequest); err != nil {
 		NewError(err).SetMessage("Bind or data struct validation error. See server logs").AbortWithStatus(c, http.StatusBadRequest)
 		return
 	}
@@ -100,10 +97,9 @@ func (p PodController) StopPod(c *gin.Context) {
 }
 
 func (p PodController) RemovePod(c *gin.Context) {
-	s := middleware.GetServerManager(c)
 
 	var podRemoveRequest request.PodRemoveRequest
-	if err := s.BindAndValidate(c, &podRemoveRequest); err != nil {
+	if err := utils.BindAndValidate(c, &podRemoveRequest); err != nil {
 		NewError(err).SetMessage("Bind or data struct validation error. See server logs").AbortWithStatus(c, http.StatusBadRequest)
 		return
 	}

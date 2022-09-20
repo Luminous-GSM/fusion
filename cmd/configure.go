@@ -33,6 +33,9 @@ func configureRun(cmd *cobra.Command, _ []string) {
 
 func Configure() {
 
+	// TODO : Generate Node Unique ID
+	// TODO : Get version from environment variable.
+
 	var generateNewConfig = false
 	// Writes config if files does not exist, or it should be overriden.
 	if !fileExist(configPath) || forceConfigOverride {

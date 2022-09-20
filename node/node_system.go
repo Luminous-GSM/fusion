@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/luminous-gsm/fusion/config"
+	"github.com/luminous-gsm/fusion/docker"
 	"github.com/luminous-gsm/fusion/model/domain"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
@@ -18,23 +19,24 @@ type MyCustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-func (node NodeService) GetNodeDescription() domain.NodeDescriptionModel {
+func (node *NodeService) GetNodeDescription() domain.NodeDescriptionModel {
 	config := config.Get()
 
 	return domain.NodeDescriptionModel{
-		Ip:              "0.0.0.0",
-		NodeUniqueId:    config.NodeUniqueId,
-		Name:            config.NodeName,
-		Description:     config.NodeDescription,
-		NodeStatus:      "running",
-		Version:         config.Version,
-		HostingPlatform: domain.HostingPlatformType(config.HostingPlatform),
-		ActivePods:      0,
-		Token:           config.ApiSecurityToken,
+		Ip:                 config.ApiHost,
+		NodeUniqueId:       config.NodeUniqueId,
+		Name:               config.NodeName,
+		Description:        config.NodeDescription,
+		NodeStatus:         "running",
+		NodeStatusExpected: "running",
+		Version:            config.Version,
+		HostingPlatform:    domain.HostingPlatformType(config.HostingPlatform),
+		ActivePods:         0,
+		Token:              config.ApiSecurityToken,
 	}
 }
 
-func (node NodeService) GetSystemLoad() (*domain.SystemLoadModel, error) {
+func (node *NodeService) GetSystemLoad() (*domain.SystemLoadModel, error) {
 	mem, err := mem.VirtualMemory()
 	if err != nil {
 		zap.S().Errorw("node: could not read virtual memory", "error", err)
@@ -58,7 +60,7 @@ func (node NodeService) GetSystemLoad() (*domain.SystemLoadModel, error) {
 	}, nil
 }
 
-func (node NodeService) TemporaryAuthentication() (string, error) {
+func (node *NodeService) TemporaryAuthentication() (string, error) {
 	// Create the claims
 	claims := MyCustomClaims{
 		[]string{"websocket"},
@@ -83,4 +85,22 @@ func (node NodeService) TemporaryAuthentication() (string, error) {
 
 	// Create JWT
 	return signedToken, nil
+}
+
+func (node *NodeService) GetNodeWarnings() []domain.FusionWarning {
+	warnings := make([]domain.FusionWarning, 0)
+
+	_, err := docker.Instance().Info()
+	if err != nil {
+		warnings = append(warnings, domain.FusionWarning{
+			Severity: domain.HIGH,
+			Service:  domain.DOCKER,
+			Message:  err.Error(),
+		})
+	}
+
+	warnings = append(warnings, node.warnings...)
+
+	return warnings
+
 }

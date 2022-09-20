@@ -1,15 +1,17 @@
 package domain
 
 type NodeDescriptionModel struct {
-	Ip              string              `json:"ip"`
-	NodeUniqueId    string              `json:"nodeUniqueId"`
-	Name            string              `json:"name"`
-	Description     string              `json:"description"`
-	NodeStatus      string              `json:"nodeStatus"`
-	Version         string              `json:"version"`
-	HostingPlatform HostingPlatformType `json:"hostingPlatform"`
-	ActivePods      int                 `json:"activePods"`
-	Token           string              `json:"token"`
+	Ip                 string              `json:"ip"`
+	NodeUniqueId       string              `json:"nodeUniqueId"`
+	Name               string              `json:"name"`
+	Description        string              `json:"description"`
+	NodeStatus         NodeStatusType      `json:"nodeStatus"`
+	NodeStatusExpected NodeStatusType      `json:"nodeStatusExpected"`
+	Version            string              `json:"version"`
+	HostingPlatform    HostingPlatformType `json:"hostingPlatform"`
+	ActivePods         int                 `json:"activePods"`
+	Token              string              `json:"token"`
+	Warnings           []FusionWarning     `json:"warnings"`
 }
 
 type FusionContainerModel struct {
@@ -41,9 +43,8 @@ type FusionImageModel struct {
 type HostingPlatformType string
 
 const (
-	DAEMON HostingPlatformType = "daemon"
-	LOCAL  HostingPlatformType = "local"
-	AWS    HostingPlatformType = "aws"
+	SELF HostingPlatformType = "self"
+	AWS  HostingPlatformType = "aws"
 )
 
 type FusionContainerState string
@@ -72,3 +73,24 @@ type SystemLoadModel struct {
 	RamLoad  string `json:"ramLoad"`
 	HddUsage string `json:"hddUsage"`
 }
+
+type FusionWarning struct {
+	Severity FusionWarningSeverity `json:"severity"`
+	Service  FusionWarningService  `json:"service"`
+	Message  string                `json:"message"`
+}
+
+type FusionWarningSeverity string
+
+const (
+	HIGH   FusionWarningSeverity = "high"
+	MEDIUM FusionWarningSeverity = "medium"
+	LOW    FusionWarningSeverity = "low"
+)
+
+type FusionWarningService string
+
+const (
+	DOCKER FusionWarningService = "docker"
+	EVENT  FusionWarningService = "event"
+)

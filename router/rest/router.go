@@ -48,7 +48,7 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 		configurationGroup := router.Group("configuration")
 		{
 			configuration := new(ConfigurationController)
-			configurationGroup.GET("/", configuration.Get)
+			configurationGroup.GET("/", configuration.GetConfiguration)
 		}
 		podGroup := router.Group("pods")
 		{

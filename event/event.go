@@ -27,6 +27,7 @@ func InitEventBus() *EventService {
 func (es EventService) InitEventChannels() {
 	bus.GetBus().GetChannelManager().CreateChannel(EVENT_REQUEST_POD_CREATE)
 	bus.GetBus().GetChannelManager().CreateChannel(EVENT_DOCKER_POD_CREATE)
+	bus.GetBus().GetChannelManager().CreateChannel(EVENT_NODE_WARNING)
 
 }
 
@@ -75,4 +76,12 @@ func FireEvent[T FusionEventData](topic string, event FusionEvent[T]) {
 	if err != nil {
 		zap.S().Named("event").Errorw("error requesting to stream", "error", err)
 	}
+}
+
+func (es EventService) ListenWithPanic(channel string) bus.MessageHandler {
+	handler, err := es.Bus().ListenRequestStream(channel)
+	if err != nil {
+		es.log().Panicw("could not create handler for channel", "error", err, "channel", channel)
+	}
+	return handler
 }

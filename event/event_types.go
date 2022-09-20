@@ -1,10 +1,14 @@
 package event
 
-import "github.com/luminous-gsm/fusion/model"
+import (
+	"github.com/luminous-gsm/fusion/model"
+	"github.com/luminous-gsm/fusion/model/domain"
+)
 
 const (
 	EVENT_REQUEST_POD_CREATE = "event:request:pod:create"
 	EVENT_DOCKER_POD_CREATE  = "event:docker:pod:create"
+	EVENT_NODE_WARNING       = "event:node:warning"
 
 	OPERATION_CONTAINER_CREATE_START  = "container-create-start"
 	OPERATION_CONTAINER_CREATE_FINISH = "container-create-finish"
@@ -14,7 +18,7 @@ const (
 )
 
 type FusionEventData interface {
-	model.PodDescription | FusionDockerEventData | map[string]interface{}
+	domain.FusionWarning | model.PodDescription | FusionDockerEventData | map[string]interface{}
 }
 
 type FusionEvent[T FusionEventData] struct {

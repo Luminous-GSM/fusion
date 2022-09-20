@@ -9,7 +9,7 @@ import (
 
 type ConfigurationController struct{}
 
-func (cc ConfigurationController) Get(c *gin.Context) {
+func (cc ConfigurationController) GetConfiguration(c *gin.Context) {
 	config := config.Get()
 	c.JSON(http.StatusOK, config)
 }
