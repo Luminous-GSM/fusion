@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,23 @@ func (p PodController) ListPods(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, containers)
+	c.JSON(http.StatusOK, gin.H{"containers": containers})
+
+}
+
+func (p PodController) InfoPod(c *gin.Context) {
+	containerId, ok := c.Params.Get("containerId")
+	if !ok {
+		NewError(errors.New("containerId not found in parameters")).AbortWithStatus(c, http.StatusBadRequest)
+	}
+
+	inspectedContainer, err := docker.Instance().InspectContainer(containerId)
+	if err != nil {
+		NewError(err).Abort(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"container": inspectedContainer})
 
 }
 

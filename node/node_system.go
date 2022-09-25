@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -33,6 +34,10 @@ func (node *NodeService) GetNodeDescription() domain.NodeDescriptionModel {
 		HostingPlatform:    domain.HostingPlatformType(config.HostingPlatform),
 		ActivePods:         0,
 		Token:              config.ApiSecurityToken,
+		FusionSystemInformation: domain.FusionSystemInformation{
+			OperatingSystem: "linux",
+			Architecture:    runtime.GOARCH,
+		},
 	}
 }
 

@@ -60,6 +60,32 @@ func (ds DockerService) Info() (types.Info, error) {
 
 }
 
+func (ds DockerService) InspectContainer(containerId string) (domain.FusionContainerModel, error) {
+	ctx, cancel := context.WithCancel(ds.ctx)
+	defer cancel()
+	inspect, err := ds.client.ContainerInspect(ctx, containerId)
+	if err != nil {
+		ds.log().Errorw("Could not inspect container", "error", err, "containerId", containerId)
+		return domain.FusionContainerModel{}, err
+	}
+
+	ports := make([]domain.ContainerPort, 0)
+
+	for key := range inspect.Config.ExposedPorts {
+		ports = append(ports, domain.ContainerPort{
+			Ip:          "",
+			PrivatePort: key.Port(),
+			PublicPort:  "0",
+			Type:        key.Proto(),
+		})
+	}
+
+	return domain.FusionContainerModel{
+		Id:    inspect.ID,
+		Ports: ports,
+	}, nil
+}
+
 func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionContainerModel, error) {
 	ctx, cancel := context.WithCancel(ds.ctx)
 	defer cancel()
@@ -88,23 +114,15 @@ func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionCo
 
 	for _, container := range containers {
 
-		inspect, err := ds.client.ContainerInspect(ctx, container.ID)
+		inspectedContainer, err := ds.InspectContainer(container.ID)
 		if err != nil {
-			ds.log().Errorw("could not inspect container", "error", err, "containerId", container.ID)
 			return nil, err
 		}
 
 		ports := []domain.ContainerPort{}
 
 		if len(container.Ports) == 0 {
-			for key := range inspect.Config.ExposedPorts {
-				ports = append(ports, domain.ContainerPort{
-					Ip:          "",
-					PrivatePort: key.Port(),
-					PublicPort:  "0",
-					Type:        key.Proto(),
-				})
-			}
+			ports = append(ports, inspectedContainer.Ports...)
 		} else {
 			for _, port := range container.Ports {
 				ports = append(ports, domain.ContainerPort{

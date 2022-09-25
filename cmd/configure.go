@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"os"
+	"runtime"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/creasty/defaults"
@@ -134,6 +135,8 @@ func getDefaultedConfiguration(path string) (*config.Configuration, error) {
 	// if it's true, the server will auto turn on debug mode on configuration generation.
 	conf.Debug = false
 	conf.Path = path
+	conf.SystemInformation.Os = runtime.GOOS
+	conf.SystemInformation.Arch = runtime.GOARCH
 	return &conf, nil
 }
 

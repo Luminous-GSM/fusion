@@ -54,6 +54,7 @@ func NewRouter(mgr *server.ServerManager) *gin.Engine {
 		{
 			pod := new(PodController)
 			podGroup.GET("/", pod.ListPods)
+			podGroup.GET("/inspect/:containerId", pod.InfoPod)
 			podGroup.POST("/create", pod.CreatePod)
 			podGroup.POST("/stop", pod.StopPod)
 			podGroup.POST("/remove", pod.RemovePod)

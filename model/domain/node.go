@@ -1,17 +1,18 @@
 package domain
 
 type NodeDescriptionModel struct {
-	Ip                 string              `json:"ip"`
-	NodeUniqueId       string              `json:"nodeUniqueId"`
-	Name               string              `json:"name"`
-	Description        string              `json:"description"`
-	NodeStatus         NodeStatusType      `json:"nodeStatus"`
-	NodeStatusExpected NodeStatusType      `json:"nodeStatusExpected"`
-	Version            string              `json:"version"`
-	HostingPlatform    HostingPlatformType `json:"hostingPlatform"`
-	ActivePods         int                 `json:"activePods"`
-	Token              string              `json:"token"`
-	Warnings           []FusionWarning     `json:"warnings"`
+	Ip                      string                  `json:"ip"`
+	NodeUniqueId            string                  `json:"nodeUniqueId"`
+	Name                    string                  `json:"name"`
+	Description             string                  `json:"description"`
+	NodeStatus              NodeStatusType          `json:"nodeStatus"`
+	NodeStatusExpected      NodeStatusType          `json:"nodeStatusExpected"`
+	Version                 string                  `json:"version"`
+	HostingPlatform         HostingPlatformType     `json:"hostingPlatform"`
+	ActivePods              int                     `json:"activePods"`
+	Token                   string                  `json:"token"`
+	Warnings                []FusionWarning         `json:"warnings"`
+	FusionSystemInformation FusionSystemInformation `json:"fusionSystemInformation"`
 }
 
 type FusionContainerModel struct {
@@ -94,3 +95,8 @@ const (
 	DOCKER FusionWarningService = "docker"
 	EVENT  FusionWarningService = "event"
 )
+
+type FusionSystemInformation struct {
+	OperatingSystem string `json:"operatingSystem"`
+	Architecture    string `json:"architecture"`
+}

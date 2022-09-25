@@ -12,6 +12,11 @@ type PodConfiguration struct {
 	Dns               []string `default:"[\"1.1.1.1\", \"1.0.0.1\"]" json:"dns"`
 }
 
+type SystemInformation struct {
+	Os   string `json:"os"`
+	Arch string `json:"arch"`
+}
+
 type Configuration struct {
 	Path            string `default:"config.yml" env:"FUSION_CONFIG_PATH,required" json:"path"`
 	Debug           bool   `default:"false" env:"FUSION_DEBUG" json:"debug" yaml:"debug"`
@@ -52,6 +57,10 @@ type Configuration struct {
 	// |-----> Pod CONFIGURATION <-----|
 	Pod PodConfiguration `yaml:"pod" json:"pod"`
 	// |-----> Pod CONFIGURATION <-----|
+
+	// |-----> System Information <-----|
+	SystemInformation SystemInformation `yaml:"system_information" json:"systemInformation"`
+	// |-----> System Information <-----|
 }
 
 // Set the global configuration instance.

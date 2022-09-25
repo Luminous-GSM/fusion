@@ -123,7 +123,7 @@ func (agent AgentController) GetAllocatedPorts(c *gin.Context) {
 		return
 	}
 
-	var ports []string
+	var ports []string = make([]string, 0)
 
 	for _, container := range containers {
 		for _, port := range container.Ports {
