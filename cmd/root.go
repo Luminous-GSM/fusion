@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -19,10 +20,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	configPath = config.DefaultLocation
-)
-
 var rootCommand = &cobra.Command{
 	Use:   "fusion",
 	Short: "Runs the fusion API server, allowing controller nodes from the Luminous console",
@@ -36,14 +33,15 @@ var rootCommand = &cobra.Command{
 		initConfig()
 		initDirectories()
 		initLogging()
+
+		byteMarshal, _ := json.MarshalIndent(config.Get(), "", "    ")
+		fmt.Print(string(byteMarshal))
 		zap.S().Infow("configured config", "config", config.Get())
 	},
 	Run: rootRun,
 }
 
 func init() {
-	rootCommand.PersistentFlags().StringVar(&configPath, "config", config.DefaultLocation, "Set the location for the configuration file")
-
 	rootCommand.AddCommand(configureCommand)
 }
 

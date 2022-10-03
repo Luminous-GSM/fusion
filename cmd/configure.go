@@ -9,6 +9,8 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/go-playground/validator"
 	"github.com/luminous-gsm/fusion/config"
+	"github.com/luminous-gsm/fusion/utils"
+	"github.com/luminous-gsm/fusion/variables"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -34,8 +36,12 @@ func configureRun(cmd *cobra.Command, _ []string) {
 
 func Configure() {
 
-	// TODO : Generate Node Unique ID
 	// TODO : Get version from environment variable.
+
+	configPath, found := os.LookupEnv("FUSION_CONFIG_PATH")
+	if !found {
+		configPath = "fusion.yml"
+	}
 
 	var generateNewConfig = false
 	// Writes config if files does not exist, or it should be overriden.
@@ -50,21 +56,27 @@ func Configure() {
 		generateNewConfig = false
 	}
 
-	conf := basicConfigurationOperations(configPath, generateNewConfig)
-
-	// Store this configuration in the global state.
-	config.Set(conf)
+	setupConfigurationOperations(configPath, generateNewConfig)
 
 	zap.S().Info("configuration completed")
 
 }
 
 // Do basic configuration operations
-func basicConfigurationOperations(configPath string, generateNewConfig bool) *config.Configuration {
+func setupConfigurationOperations(configPath string, generateNewConfig bool) {
 	// Step 1 : Create configuration with defaults
 	conf, err := getDefaultedConfiguration(configPath)
 	if err != nil {
 		zap.S().Fatal("default configuration creation error")
+	}
+
+	// Set the default config as config to be able to use it in futher setup steps.
+	// Mostly for replacing template tokens with values,
+	// and then overriding them if they are found in ENV variables.
+	config.Set(conf)
+
+	if err = loadCalculatedDefaults(conf); err != nil {
+		zap.S().Fatalw("calculated variables loading error", "errors", err)
 	}
 
 	if !generateNewConfig {
@@ -89,7 +101,11 @@ func basicConfigurationOperations(configPath string, generateNewConfig bool) *co
 		zap.S().Fatal("configuration writing error")
 	}
 
-	return conf
+	// Store this configuration in the global state.
+	config.Set(conf)
+
+	// Refresh all values in variables with the updated, applied and correct values
+	variables.Instance().RefreshAllVariables()
 }
 
 // Write the configuration file to disk
@@ -135,8 +151,6 @@ func getDefaultedConfiguration(path string) (*config.Configuration, error) {
 	// if it's true, the server will auto turn on debug mode on configuration generation.
 	conf.Debug = false
 	conf.Path = path
-	conf.SystemInformation.Os = runtime.GOOS
-	conf.SystemInformation.Arch = runtime.GOARCH
 	return &conf, nil
 }
 
@@ -160,6 +174,38 @@ func loadFromFile(conf *config.Configuration, configPath string) error {
 		)
 		return err
 	}
+
+	return nil
+}
+
+func loadCalculatedDefaults(conf *config.Configuration) error {
+	variables.Instance().RefreshAllVariables()
+
+	// conf.SystemInformation.Os = runtime.GOOS
+	conf.SystemInformation.Os = "linux"
+	conf.SystemInformation.Arch = runtime.GOARCH
+
+	// Create the default role username and password for the file browser extension.
+	systemRoles := make([]config.SystemRole, 0)
+	fileBrowserPassword, err := utils.GenerateSecureRandomString(24, true)
+	if err != nil {
+		return err
+	}
+	fileBrowserPasswordHashed, err := utils.HashPasswordBasedOnArgon2(fileBrowserPassword, false)
+	if err != nil {
+		return err
+	}
+	systemRoles = append(systemRoles, config.SystemRole{
+		Username: "filebrowser",
+		Password: fileBrowserPasswordHashed,
+	})
+	conf.SystemRoles = systemRoles
+
+	// Apply all the config values that supports variables.
+	conf.NodeUniqueId = variables.Instance().ReplaceGlobalVariablesInString(conf.NodeUniqueId)
+	conf.NodeName = variables.Instance().ReplaceGlobalVariablesInString(conf.NodeName)
+	conf.ApiSecurityToken = variables.Instance().ReplaceGlobalVariablesInString(conf.ApiSecurityToken)
+	conf.NodeHostname = variables.Instance().ReplaceGlobalVariablesInString(conf.NodeHostname)
 
 	return nil
 }

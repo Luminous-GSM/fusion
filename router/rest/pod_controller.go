@@ -13,7 +13,18 @@ import (
 type PodController struct{}
 
 func (p PodController) ListPods(c *gin.Context) {
-	containers, err := docker.Instance().ListContainers([]string{})
+
+	containerIds, exist := c.GetQueryArray("containerIds")
+	if !exist {
+		containerIds = make([]string, 0)
+	}
+
+	containerTypes, exist := c.GetQueryArray("containerTypes")
+	if !exist {
+		containerTypes = make([]string, 0)
+	}
+
+	containers, err := docker.Instance().ListContainers(containerIds, containerTypes)
 	if err != nil {
 		NewError(err).Abort(c)
 		return
@@ -71,7 +82,7 @@ func (p PodController) StartPod(c *gin.Context) {
 		return
 	}
 
-	containers, err := docker.Instance().ListContainers([]string{id})
+	containers, err := docker.Instance().ListContainers([]string{id}, []string{})
 	if err != nil {
 		NewError(err).SetMessage("Could not start container. See server logs").Abort(c)
 		return
@@ -99,7 +110,7 @@ func (p PodController) StopPod(c *gin.Context) {
 		return
 	}
 
-	containers, err := docker.Instance().ListContainers([]string{id})
+	containers, err := docker.Instance().ListContainers([]string{id}, []string{})
 	if err != nil {
 		NewError(err).SetMessage("Could not start container. See server logs").Abort(c)
 		return

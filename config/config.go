@@ -1,7 +1,5 @@
 package config
 
-const DefaultLocation = "fusion.yaml"
-
 var (
 	_config *Configuration
 )
@@ -17,6 +15,11 @@ type SystemInformation struct {
 	Arch string `json:"arch"`
 }
 
+type SystemRole struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type Configuration struct {
 	Path            string `default:"config.yml" env:"FUSION_CONFIG_PATH,required" json:"path"`
 	Debug           bool   `default:"false" env:"FUSION_DEBUG" json:"debug" yaml:"debug"`
@@ -25,32 +28,32 @@ type Configuration struct {
 
 	// |-----> System CONFIGURATION <-----|
 	// The root directory where fusion data is stored.
-	RootDirectory string `default:"/var/lib/fusion/" validate:"endswith=/" env:"FUSION_SYSTEM_ROOT_DIRECTORY" yaml:"system_root_directory" json:"systemRootDirectory"`
+	RootDirectory string `default:"/var/lib/fusion/" validate:"" env:"FUSION_SYSTEM_ROOT_DIRECTORY" yaml:"system_root_directory" json:"systemRootDirectory"`
 	// Directory where logs and events are logged.
-	LogDirectory string `default:"/var/log/fusion/" validate:"endswith=/" env:"FUSION_SYSTEM_LOG_DIRECTORY" yaml:"system_log_directory" json:"systemLogDirectory"`
+	LogDirectory string `default:"/var/lib/fusion/logs" validate:"" env:"FUSION_SYSTEM_LOG_DIRECTORY" yaml:"system_log_directory" json:"systemLogDirectory"`
 	// Directory where the server data is stored at.
-	DataDirectory  string `default:"/var/lib/fusion/volumes/" validate:"endswith=/" env:"FUSION_SYSTEM_DATA_DIRECTORY" yaml:"system_data_directory" json:"systemDataDirectory"`
-	CertsDirectory string `default:"/var/lib/fusion/certs/" validate:"endswith=/" env:"FUSION_SYSTEM_CERTS_DIRECTORY" yaml:"system_certs_directory" json:"systemCertsDirectory"`
+	DataDirectory  string `default:"/var/lib/fusion/data" validate:"" env:"FUSION_SYSTEM_DATA_DIRECTORY" yaml:"system_data_directory" json:"systemDataDirectory"`
+	CertsDirectory string `default:"/var/lib/fusion/certs" validate:"" env:"FUSION_SYSTEM_CERTS_DIRECTORY" yaml:"system_certs_directory" json:"systemCertsDirectory"`
 	// User IDs
 	SystemUserUid int `default:"1000" env:"FUSION_SYSTEM_UID" yaml:"system_uid" json:"systemUid"`
 	SystemUserGid int `default:"1000" env:"FUSION_SYSTEM_GID" yaml:"system_gid" json:"systemGid"`
 	// |-----> System CONFIGURATION <-----|
 
 	// |-----> NODE CONFIGURATION <-----|
-	NodeUniqueId    string `validate:"required" env:"FUSION_NODE_UNIQUE_ID,required" yaml:"node_unique_id" json:"nodeUniqueId"`
+	NodeUniqueId    string `default:"{{fusion.generated.id}}" validate:"" env:"FUSION_NODE_UNIQUE_ID" yaml:"node_unique_id" json:"nodeUniqueId"`
 	NodeHostname    string `default:"localhost" validate:"alphanum" env:"FUSION_NODE_HOSTNAME" yaml:"node_hostname" json:"nodeHostname"`
-	NodeName        string `default:"Fusion" env:"FUSION_NODE_NAME" json:"nodeName" yaml:"node_name"`
-	NodeDescription string `default:"Node Control Plane" env:"FUSION_NODE_DESCRIPTION" json:"nodeDescription" yaml:"node_description"`
+	NodeName        string `default:"{{fusion.generated.name}}" env:"FUSION_NODE_NAME" json:"nodeName" yaml:"node_name"`
+	NodeDescription string `default:"Fusion Node Control Agent" env:"FUSION_NODE_DESCRIPTION" json:"nodeDescription" yaml:"node_description"`
 	// |-----> NODE CONFIGURATION <-----|
 
 	// |-----> API CONFIGURATION <-----|
 	ApiHost          string `default:"0.0.0.0" validate:"url|ip" env:"FUSION_API_HOST" yaml:"api_host" json:"apiHost"`
 	ApiPort          int    `default:"8899" validate:"numeric" env:"FUSION_API_PORT" yaml:"api_port" json:"apiPort"`
-	ApiSecurityToken string `validate:"required" env:"FUSION_API_SECURITY_TOKEN,required" yaml:"api_token" json:"apiToken"`
+	ApiSecurityToken string `default:"{{fusion.generated.password}}" validate:"" env:"FUSION_API_SECURITY_TOKEN" yaml:"api_token" json:"apiToken"`
 	// |-----> API CONFIGURATION <-----|
 
-	ConsoleUrl    string `validate:"required,url|ip" env:"FUSION_CONSOLE_URL,required" json:"consoleUrl" yaml:"console_url"`
-	ManagementUrl string `validate:"required,url|ip" env:"FUSION_MANAGEMENT_URL,required" json:"managementUrl" yaml:"management_url"`
+	ConsoleUrl    string `default:"https://localhost:3000" validate:"required,url|ip" env:"FUSION_CONSOLE_URL" json:"consoleUrl" yaml:"console_url"`
+	ManagementUrl string `default:"https://localhost:8898" validate:"required,url|ip" env:"FUSION_MANAGEMENT_URL" json:"managementUrl" yaml:"management_url"`
 
 	AllowPrivateNetwork bool `default:"false" env:"FUSION_ALLOW_PRIVATE_NETWORK" json:"allowPrivateNetwork" yaml:"allow_private_network"`
 
@@ -61,6 +64,8 @@ type Configuration struct {
 	// |-----> System Information <-----|
 	SystemInformation SystemInformation `yaml:"system_information" json:"systemInformation"`
 	// |-----> System Information <-----|
+
+	SystemRoles []SystemRole `yaml:"system_roles" json:"systemRoles"`
 }
 
 // Set the global configuration instance.

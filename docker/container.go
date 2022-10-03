@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -18,11 +17,14 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/daemon/logger/local"
 	"github.com/docker/go-connections/nat"
+	"github.com/kennygrant/sanitize"
 	"github.com/luminous-gsm/fusion/config"
 	"github.com/luminous-gsm/fusion/event"
 	"github.com/luminous-gsm/fusion/model"
 	"github.com/luminous-gsm/fusion/model/domain"
 	"github.com/luminous-gsm/fusion/model/request"
+	"github.com/luminous-gsm/fusion/utils"
+	"github.com/luminous-gsm/fusion/variables"
 	"go.uber.org/zap"
 )
 
@@ -80,13 +82,19 @@ func (ds DockerService) InspectContainer(containerId string) (domain.FusionConta
 		})
 	}
 
+	labels := make([]string, 0)
+	for key, value := range inspect.Config.Labels {
+		labels = append(labels, fmt.Sprintf("%v=%v", key, value))
+	}
+
 	return domain.FusionContainerModel{
-		Id:    inspect.ID,
-		Ports: ports,
+		Id:     inspect.ID,
+		Ports:  ports,
+		Labels: labels,
 	}, nil
 }
 
-func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionContainerModel, error) {
+func (ds DockerService) ListContainers(containerIds, containerTypes []string) ([]domain.FusionContainerModel, error) {
 	ctx, cancel := context.WithCancel(ds.ctx)
 	defer cancel()
 
@@ -95,7 +103,11 @@ func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionCo
 	// other containers, and we don't want to manage those.
 	// TODO -low : We can add a query parameter to list all (including fusion non-managed) containers.
 	filters := filters.NewArgs()
-	filters.Add("label", "is-fusion-managed")
+	filters.Add("label", "fusion_is-managed")
+	for _, containerType := range containerTypes {
+		filters.Add("label", fmt.Sprintf("fusion_type=%v", containerType))
+	}
+
 	for _, id := range containerIds {
 		filters.Add("id", id)
 	}
@@ -144,6 +156,7 @@ func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionCo
 			Status:  container.Status,
 			State:   domain.FusionContainerState(container.State),
 			Ports:   ports,
+			Labels:  inspectedContainer.Labels,
 		})
 	}
 
@@ -156,39 +169,66 @@ func (ds DockerService) ListContainers(containerIds []string) ([]domain.FusionCo
 
 // Create the container for the specific pod
 func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateRequest) (string, error) {
+	ds.log().Infow("Creating container", "podCreateRequest", podCreateRequest)
+
 	ds.publishEvent(event.OPERATION_CONTAINER_CREATE_START, "Starting Fusion Pod Creation")
 	defer ds.publishEvent(event.OPERATION_CONTAINER_CREATE_FINISH, "Finished Fusion Pod Creation")
 
-	imageRef := podCreateRequest.PodDescription.Image + ":" + podCreateRequest.PodDescription.Tag
-
-	ds.log().Debugw("creating container", "image", imageRef)
-
-	if err := ds.ensureImageExists(imageRef); err != nil {
+	// Create a secure random string for pod suffix, as well as the scope for fusion variables.
+	podIdSuffix, err := utils.GenerateSecureRandomString(5, false)
+	if err != nil {
 		return "", err
 	}
+	variableScope := podIdSuffix
+
+	// Make sure to remove the current scope from variables.
+	// Also refersh the generated variables for fresh random values
+	defer variables.Instance().RemoveScopedVariables(variableScope)
+	variables.Instance().RefreshGeneratedVariables()
 
 	// Cancel after containerPullTimeout of time
 	ctx, cancel := context.WithTimeout(ds.ctx, time.Minute*containerCreateTimeout)
 	defer cancel()
 
-	exposed, bindings, err := getBindsFromPortMaps(podCreateRequest.PodDescription.PortMaps)
+	imageRef := podCreateRequest.PodDescription.Image + ":" + podCreateRequest.PodDescription.Tag
+	ds.log().Debugw("creating container", "image", imageRef)
+
+	containerName := podCreateRequest.PodDescription.ManifestInfo.Id + "_" + sanitize.BaseName(podCreateRequest.PodDescription.Name)
+	podId := containerName + "_" + podIdSuffix
+	ds.log().Debugw("creating pod id", "podId", podId, "containerName", containerName)
+
+	// Add pod ID to variables that can be used via fusion variables
+	variables.Instance().AddVariableToScopedReplacer(variableScope, "fusion.pod.id", podId)
+
+	if err := ds.ensureImageExists(imageRef); err != nil {
+		return "", err
+	}
+
+	bindings, exposed := getPortBindsFromPortMaps(podCreateRequest.PodDescription.PortMaps)
+	if err != nil {
+		return "", err
+	}
+
+	environmentVariables, err := getEnvironmentVariablesFromMaps(variableScope, podCreateRequest.PodDescription.EnvironmentMaps)
 	if err != nil {
 		return "", err
 	}
 
 	containerConfig := &container.Config{
-		Hostname:     config.Get().NodeHostname,
-		Domainname:   "",
-		User:         strconv.Itoa(config.Get().SystemUserUid) + ":" + strconv.Itoa(config.Get().SystemUserGid),
+		Hostname:   config.Get().NodeHostname,
+		Domainname: "",
+		// User:         strconv.Itoa(config.Get().SystemUserUid) + ":" + strconv.Itoa(config.Get().SystemUserGid),
 		ExposedPorts: exposed,
 		Image:        imageRef,
 		Tty:          true,
-		Env:          getEnvironmentVariablesFromMaps(podCreateRequest.PodDescription.EnvironmentMaps),
+		Env:          environmentVariables,
 		Labels: map[string]string{
-			"manifest-file-used": podCreateRequest.PodDescription.ManifestFileUsed,
-			"is-fusion-managed":  "true",
-			"friendly-name":      podCreateRequest.PodDescription.Name,
-			"pod-id":             podCreateRequest.PodDescription.Name,
+			"fusion_is-managed":    "true",
+			"fusion_friendly-name": podCreateRequest.PodDescription.Name,
+			"fusion_pod-id":        podId,
+			"fusion_type":          podCreateRequest.PodDescription.ManifestInfo.Type,
+			"fusion_manifest-id":   podCreateRequest.PodDescription.ManifestInfo.Id,
+			"fusion_photon-id":     podCreateRequest.PodDescription.ManifestInfo.Id,
 		},
 	}
 
@@ -196,10 +236,15 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 
 	tmpfsSize := config.Get().Pod.TmpfsSize
 
+	mounts, err := getMountsFromMountMaps(variableScope, podCreateRequest.PodDescription)
+	if err != nil {
+		return "", err
+	}
+
 	hostConfig := &container.HostConfig{
 		PortBindings: bindings,
 
-		Mounts: getMountsFromMountMaps(podCreateRequest.PodDescription),
+		Mounts: mounts,
 
 		DNS: config.Get().Pod.Dns,
 
@@ -225,7 +270,12 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 			Name: "unless-stopped",
 		},
 		SecurityOpt:    []string{"no-new-privileges"},
-		ReadonlyRootfs: true,
+		ReadonlyRootfs: false,
+
+		CapDrop: []string{
+			"setpcap", "mknod", "audit_write", "net_raw", "dac_override",
+			"fowner", "fsetid", "net_bind_service", "sys_chroot", "setfcap",
+		},
 	}
 
 	ds.log().Debugw("host configuration", "hostConfiguration", hostConfig)
@@ -235,7 +285,7 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 		return "", err
 	}
 
-	result, err := ds.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, podCreateRequest.PodDescription.Name)
+	result, err := ds.client.ContainerCreate(ctx, containerConfig, hostConfig, nil, nil, containerName)
 	if err != nil {
 		ds.log().Errorw("error creating container", "error", err)
 		return "", err
@@ -248,7 +298,7 @@ func (ds DockerService) CreateContainer(podCreateRequest request.PodCreateReques
 		)
 	}
 
-	ds.log().Debugw("completed creating container",
+	ds.log().Infow("completed creating container",
 		"imageRef", imageRef,
 		"containerId", result.ID,
 	)
@@ -313,50 +363,75 @@ func (ds DockerService) RemoveContainer(podRemoveRequest request.PodRemoveReques
 
 }
 
-func getBindsFromPortMaps(ports []model.PortMap) (map[nat.Port]struct{}, map[nat.Port][]nat.PortBinding, error) {
-	var dockerStandardPorts []string
+func getPortBindsFromPortMaps(ports []model.PortMap) (nat.PortMap, nat.PortSet) {
+	portMap := nat.PortMap{}
+
 	for _, port := range ports {
-		dockerStandardPorts = append(dockerStandardPorts, fmt.Sprintf("127.0.0.1:%v:%v/%v", port.Exposed, port.Binding, port.Protocol))
-		zap.S().Debugw("preparing bings from port maps", "port", port)
+		binding := nat.PortBinding{
+			HostIP:   "0.0.0.0",
+			HostPort: strconv.Itoa(port.Binding),
+		}
+
+		natPort := nat.Port(fmt.Sprintf("%d/%v", port.Binding, port.Protocol))
+
+		portMap[natPort] = append(portMap[natPort], binding)
 	}
-	exposed, bindings, err := nat.ParsePortSpecs(dockerStandardPorts)
-	if err != nil {
-		zap.S().Errorw("error parsing port specifications", "error", err)
-		return nil, nil, err
+
+	portSet := nat.PortSet{}
+
+	for port := range portMap {
+		portSet[port] = struct{}{}
 	}
-	return exposed, bindings, nil
+
+	return portMap, portSet
 }
 
-func getEnvironmentVariablesFromMaps(environmentVariables []model.EnvironmentMap) []string {
+// func getBindsFromPortMaps(ports []model.PortMap) (map[nat.Port]struct{}, map[nat.Port][]nat.PortBinding, error) {
+// 	var dockerStandardPorts []string
+// 	for _, port := range ports {
+// 		dockerStandardPorts = append(dockerStandardPorts, fmt.Sprintf("0.0.0.0:%v:%v/%v", port.Exposed, port.Binding, port.Protocol))
+// 		zap.S().Debugw("preparing bings from port maps", "port", port)
+// 	}
+// 	exposed, bindings, err := nat.ParsePortSpecs(dockerStandardPorts)
+// 	if err != nil {
+// 		zap.S().Errorw("error parsing port specifications", "error", err)
+// 		return nil, nil, err
+// 	}
+// 	return exposed, bindings, nil
+// }
+
+func getEnvironmentVariablesFromMaps(variableScope string, environmentVariables []model.EnvironmentMap) ([]string, error) {
 	var dockerStandardEnvironmentVariables []string
 	for _, env := range environmentVariables {
-		dockerStandardEnvironmentVariables = append(dockerStandardEnvironmentVariables, fmt.Sprintf("%s=%s", env.Name, env.Value))
+		environmentVariableValue, err := variables.Instance().ReplaceGlobalAndScopedVariablesInString(variableScope, env.Value, true)
+		if err != nil {
+			return nil, err
+		}
+
+		dockerStandardEnvironmentVariables = append(dockerStandardEnvironmentVariables, fmt.Sprintf("%s=%s", env.Name, environmentVariableValue))
 		zap.S().Debugw("preparing environment from environment maps", "environment", env)
 	}
-	return dockerStandardEnvironmentVariables
+	return dockerStandardEnvironmentVariables, nil
 }
 
-func generateUniquePodName(description model.PodDescription) string {
-	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
-	b := make([]rune, 10)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return description.Name + "-" + string(b)
-}
-
-func getMountsFromMountMaps(description model.PodDescription) []mount.Mount {
+func getMountsFromMountMaps(variableScope string, description model.PodDescription) ([]mount.Mount, error) {
 	var dockerStandardMountVariables []mount.Mount
 	for _, mountItem := range description.MountMaps {
+
+		sourceDirectory, err := variables.Instance().ReplaceGlobalAndScopedVariablesInString(variableScope, mountItem.Source, true)
+		if err != nil {
+			return nil, err
+		}
+
 		dockerStandardMountVariables = append(dockerStandardMountVariables, mount.Mount{
 			Type:     mount.TypeBind,
-			Source:   config.Get().DataDirectory + description.Name + mountItem.Destination,
+			Source:   sourceDirectory,
 			Target:   mountItem.Destination,
 			ReadOnly: false,
 		})
 		zap.S().Debugw("preparing mount from mount maps", "mount", mountItem)
 	}
-	return dockerStandardMountVariables
+	return dockerStandardMountVariables, nil
 }
 
 // See if the image already exist.
@@ -480,7 +555,7 @@ func (ds DockerService) GetLogs(containerId, limit string) ([]string, error) {
 }
 
 func (ds DockerService) GetImages() ([]domain.FusionImageModel, error) {
-	zap.S().Infow("started get images")
+	ds.log().Infow("listing images")
 
 	// Cancel after containerPullTimeout of time
 	ctx, cancel := context.WithCancel(ds.ctx)
@@ -497,8 +572,6 @@ func (ds DockerService) GetImages() ([]domain.FusionImageModel, error) {
 		return nil, err
 	}
 
-	zap.S().Infow("got all images")
-
 	consoleImages := []domain.FusionImageModel{}
 	for _, image := range images {
 		consoleImages = append(consoleImages, domain.FusionImageModel{
@@ -508,6 +581,8 @@ func (ds DockerService) GetImages() ([]domain.FusionImageModel, error) {
 			Containers: int(image.Containers),
 		})
 	}
+
+	ds.log().Infow("listing images completed")
 
 	return consoleImages, nil
 

@@ -2,16 +2,16 @@ package model
 
 // Description of a pod
 type PodDescription struct {
-	Id               string           `validate:"required" json:"id"`
-	Name             string           `validate:"required,max=128" json:"name"`
-	Image            string           `validate:"required" json:"image"`
-	Tag              string           `validate:"required" json:"tag"`
-	PortMaps         []PortMap        `validate:"required" json:"portMaps"`
-	EnvironmentMaps  []EnvironmentMap `validate:"required" json:"environmentMaps"`
-	MountMaps        []MountMap       `validate:"required" json:"mountMaps"`
-	Command          string           `json:"command"`
-	ManifestFileUsed string           `validate:"required" json:"manifestFileUsed"`
-	Limit            Limit            `validate:"required" json:"limit"`
+	Id              string           `validate:"required" json:"id"`
+	Name            string           `validate:"required,max=128" json:"name"`
+	Image           string           `validate:"required" json:"image"`
+	Tag             string           `validate:"required" json:"tag"`
+	PortMaps        []PortMap        `validate:"required" json:"portMaps"`
+	EnvironmentMaps []EnvironmentMap `validate:"required" json:"environmentMaps"`
+	MountMaps       []MountMap       `validate:"required" json:"mountMaps"`
+	Command         string           `json:"command"`
+	Limit           Limit            `validate:"required" json:"limit"`
+	ManifestInfo    ManifestInfo     `validate:"required" json:"manifestInfo"`
 }
 
 // Required,
@@ -40,4 +40,9 @@ type MountMap struct {
 
 type Limit struct {
 	Memory int `validate:"required,gt=6" json:"memory"`
+}
+
+type ManifestInfo struct {
+	Id   string `validate:"required" json:"id"`
+	Type string `validate:"required" json:"type"`
 }

@@ -19,7 +19,7 @@ func (agent AgentController) PingAgent(c *gin.Context) {
 	nodeWarnings := node.Instance().GetNodeWarnings()
 	nodeDescription := node.Instance().GetNodeDescription()
 
-	containers, err := docker.Instance().ListContainers([]string{})
+	containers, err := docker.Instance().ListContainers([]string{}, []string{})
 	if err != nil {
 		nodeDescription.ActivePods = 0
 		zap.S().With("controller", "AgentController").Errorw("Could not list docker containers", "error", err)
@@ -44,7 +44,7 @@ func (agent AgentController) Dashboard(c *gin.Context) {
 		return
 	}
 
-	containers, err := docker.Instance().ListContainers([]string{})
+	containers, err := docker.Instance().ListContainers([]string{}, []string{})
 	if err != nil {
 		NewError(err).SetMessage("Could not get containers. See server logs").Abort(c)
 		return
@@ -117,7 +117,7 @@ func (agent AgentController) PublishManualEvent(c *gin.Context) {
 }
 
 func (agent AgentController) GetAllocatedPorts(c *gin.Context) {
-	containers, err := docker.Instance().ListContainers([]string{})
+	containers, err := docker.Instance().ListContainers([]string{}, []string{})
 	if err != nil {
 		NewError(err).SetMessage("listing containers error. See server logs").AbortWithStatus(c, http.StatusBadRequest)
 		return

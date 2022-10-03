@@ -25,6 +25,7 @@ type FusionContainerModel struct {
 	Status  string               `json:"status"`
 	State   FusionContainerState `json:"state"`
 	Ports   []ContainerPort      `json:"ports"`
+	Labels  []string             `json:"labels"`
 }
 
 type ContainerPort struct {
